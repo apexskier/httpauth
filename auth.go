@@ -56,29 +56,38 @@ func (a Authorizer) Save(u UserData) error {
     f, err := os.Create(a.Filepath)
     defer f.Close()
     if err != nil {
-        return errors.New("No auth file found.")
+        return errors.New("Auth file can't be edited. Is the data folder there?")
     }
     enc := gob.NewEncoder(f)
     err = enc.Encode(a)
     return nil
 }
 
-func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string) error {
+func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, dest string) error {
     session, _ := a.cookiejar.Get(req, "auth")
+    message_session, _ := a.cookiejar.Get(req, "messages")
+    defer message_session.Save(req, rw)
     if session.Values["username"] != nil {
         return errors.New("Already authenticated.")
     }
     if user, ok := a.Users[u]; !ok {
+        message_session.AddFlash("Invalid username or password.")
         return errors.New("User not found.")
     } else {
         hash := hashString(u + p, a.Salt)
         if !bytes.Equal(user.Hash, hash) {
+            message_session.AddFlash("Invalid username or password.")
             return errors.New("Password doesn't match.")
         }
     }
     session.Values["username"] = u
     session.Save(req, rw)
 
+    redirect_session, _ := a.cookiejar.Get(req, "redirects")
+    if flashes := redirect_session.Flashes(); len(flashes) > 0 {
+        dest = flashes[0].(string)
+    }
+    http.Redirect(rw, req, dest, http.StatusSeeOther)
     return nil
 }
 
@@ -86,20 +95,60 @@ func hashString(input string, salt []byte) []byte {
     return pbkdf2.Key([]byte(input), salt, 4096, sha256.Size, sha256.New)
 }
 
-func (a Authorizer) Register(u string, p string, e string) error {
+func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) (err error) {
     hash := hashString(u + p, a.Salt)
-    return a.Save(UserData{u, hash, e})
+    err = a.Save(UserData{u, hash, e})
+    if err != nil {
+        message_session, _ := a.cookiejar.Get(req, "messages")
+        defer message_session.Save(req, rw)
+        message_session.AddFlash(err.Error())
+    }
+    return
 }
 
-func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request) (error, int) {
+func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request) error {
+    redirect_session, _ := a.cookiejar.Get(req, "redirects");
+    message_session, _ := a.cookiejar.Get(req, "messages")
     session, err := a.cookiejar.Get(req, "auth")
+    redirect_session.Flashes()
+    defer redirect_session.Save(req, rw)
+    defer message_session.Save(req, rw)
     if err != nil {
-        return errors.New("Couldn't read cookiejar."), http.StatusInternalServerError
+        redirect_session.AddFlash(req.URL.Path)
+        return errors.New("Cookie jar doesn't have any auth.")
     }
     username := session.Values["username"]
+    if !session.IsNew {
+        if _, ok := a.Users[username.(string)]; !ok {
+            redirect_session.AddFlash(req.URL.Path)
+            session.Options.MaxAge = -1
+            session.Save(req, rw)
+            return errors.New("User not found.")
+        }
+    }
     if username == nil {
-        return errors.New("You must login to do that."), http.StatusUnauthorized
+        redirect_session.AddFlash(req.URL.Path)
+        message_session.AddFlash("Log in to do that.")
+        return errors.New("User not logged in.")
     }
     context.Set(req, "username", username)
-    return nil, http.StatusOK
+    return nil
+}
+
+func (a Authorizer) Logout(rw http.ResponseWriter, req *http.Request) error {
+    message_session, _ := a.cookiejar.Get(req, "messages")
+    session, _ := a.cookiejar.Get(req, "auth")
+    defer message_session.Save(req, rw)
+    defer session.Save(req, rw)
+
+    session.Options.MaxAge = -1
+    message_session.AddFlash("Logged out.")
+    return nil
+}
+
+func (a Authorizer) Messages(rw http.ResponseWriter, req *http.Request) []interface{} {
+    session, _ := a.cookiejar.Get(req, "messages")
+    flashes := session.Flashes()
+    session.Save(req, rw)
+    return flashes
 }
