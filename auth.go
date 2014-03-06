@@ -1,4 +1,4 @@
-package main
+package goauth
 
 import (
     "encoding/gob"
@@ -25,7 +25,24 @@ type Authorizer struct {
     cookiejar *sessions.CookieStore
 }
 
-func NewAuthorizer(fpath string, salt string) Authorizer {
+func (a Authorizer) addMessage(rw http.ResponseWriter, req *http.Request, message string) {
+    message_session, _ := a.cookiejar.Get(req, "messages")
+    defer message_session.Save(req, rw)
+    message_session.AddFlash(message)
+}
+
+func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
+    redirect_session, _ := a.cookiejar.Get(req, "redirects");
+    defer redirect_session.Save(req, rw)
+    redirect_session.Flashes()
+    redirect_session.AddFlash(req.URL.Path)
+}
+
+func hashString(input string, salt []byte) []byte {
+    return pbkdf2.Key([]byte(input), salt, 4096, sha256.Size, sha256.New)
+}
+
+func NewAuthorizer(fpath string, salt string, key []byte) Authorizer {
     var a Authorizer
     if _, err := os.Stat(fpath); err == nil {
         f, err := os.Open(fpath)
@@ -43,7 +60,7 @@ func NewAuthorizer(fpath string, salt string) Authorizer {
     }
     a.Filepath = fpath
     a.Salt = []byte(salt)
-    a.cookiejar = sessions.NewCookieStore([]byte("wombat-secret-key"))
+    a.cookiejar = sessions.NewCookieStore([]byte(key))
     return a
 }
 
@@ -65,18 +82,16 @@ func (a Authorizer) Save(u UserData) error {
 
 func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, dest string) error {
     session, _ := a.cookiejar.Get(req, "auth")
-    message_session, _ := a.cookiejar.Get(req, "messages")
-    defer message_session.Save(req, rw)
     if session.Values["username"] != nil {
         return errors.New("Already authenticated.")
     }
     if user, ok := a.Users[u]; !ok {
-        message_session.AddFlash("Invalid username or password.")
+        a.addMessage(rw, req, "Invalid username or password.")
         return errors.New("User not found.")
     } else {
         hash := hashString(u + p, a.Salt)
         if !bytes.Equal(user.Hash, hash) {
-            message_session.AddFlash("Invalid username or password.")
+            a.addMessage(rw, req, "Invalid username or password.")
             return errors.New("Password doesn't match.")
         }
     }
@@ -91,44 +106,39 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
     return nil
 }
 
-func hashString(input string, salt []byte) []byte {
-    return pbkdf2.Key([]byte(input), salt, 4096, sha256.Size, sha256.New)
-}
-
 func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) (err error) {
     hash := hashString(u + p, a.Salt)
     err = a.Save(UserData{u, hash, e})
     if err != nil {
-        message_session, _ := a.cookiejar.Get(req, "messages")
-        defer message_session.Save(req, rw)
-        message_session.AddFlash(err.Error())
+        a.addMessage(rw, req, err.Error())
     }
     return
 }
 
 func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request) error {
-    redirect_session, _ := a.cookiejar.Get(req, "redirects");
-    message_session, _ := a.cookiejar.Get(req, "messages")
-    session, err := a.cookiejar.Get(req, "auth")
-    redirect_session.Flashes()
-    defer redirect_session.Save(req, rw)
-    defer message_session.Save(req, rw)
+    auth_session, err := a.cookiejar.Get(req, "auth")
     if err != nil {
-        redirect_session.AddFlash(req.URL.Path)
-        return errors.New("Cookie jar doesn't have any auth.")
+        a.goBack(rw, req)
+        return errors.New("New authorization session. Possible restart of server.")
     }
-    username := session.Values["username"]
-    if !session.IsNew {
+    if auth_session.IsNew {
+        a.goBack(rw, req)
+        a.addMessage(rw, req, "Log in to do that.")
+        return errors.New("No session existed.")
+    }
+    username := auth_session.Values["username"]
+    if !auth_session.IsNew {
         if _, ok := a.Users[username.(string)]; !ok {
-            redirect_session.AddFlash(req.URL.Path)
-            session.Options.MaxAge = -1
-            session.Save(req, rw)
+            a.goBack(rw, req)
+            auth_session.Options.MaxAge = -1 // kill the cookie
+            auth_session.Save(req, rw)
+            a.addMessage(rw, req, "Log in to do that.")
             return errors.New("User not found.")
         }
     }
     if username == nil {
-        redirect_session.AddFlash(req.URL.Path)
-        message_session.AddFlash("Log in to do that.")
+        a.goBack(rw, req)
+        a.addMessage(rw, req, "Log in to do that.")
         return errors.New("User not logged in.")
     }
     context.Set(req, "username", username)
@@ -136,19 +146,21 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request) error {
 }
 
 func (a Authorizer) Logout(rw http.ResponseWriter, req *http.Request) error {
-    message_session, _ := a.cookiejar.Get(req, "messages")
     session, _ := a.cookiejar.Get(req, "auth")
-    defer message_session.Save(req, rw)
     defer session.Save(req, rw)
 
-    session.Options.MaxAge = -1
-    message_session.AddFlash("Logged out.")
+    session.Options.MaxAge = -1 // kill the cookie
+    a.addMessage(rw, req, "Logged out.")
     return nil
 }
 
-func (a Authorizer) Messages(rw http.ResponseWriter, req *http.Request) []interface{} {
+func (a Authorizer) Messages(rw http.ResponseWriter, req *http.Request) []string {
     session, _ := a.cookiejar.Get(req, "messages")
     flashes := session.Flashes()
     session.Save(req, rw)
-    return flashes
+    var messages []string
+    for _, val := range flashes {
+        messages = append(messages, val.(string))
+    }
+    return messages
 }
