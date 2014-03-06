@@ -115,30 +115,38 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string
     return
 }
 
-func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request) error {
+func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirectWithMessage bool) error {
     auth_session, err := a.cookiejar.Get(req, "auth")
     if err != nil {
-        a.goBack(rw, req)
+        if redirectWithMessage {
+            a.goBack(rw, req)
+        }
         return errors.New("New authorization session. Possible restart of server.")
     }
     if auth_session.IsNew {
-        a.goBack(rw, req)
-        a.addMessage(rw, req, "Log in to do that.")
+        if redirectWithMessage {
+            a.goBack(rw, req)
+            a.addMessage(rw, req, "Log in to do that.")
+        }
         return errors.New("No session existed.")
     }
     username := auth_session.Values["username"]
     if !auth_session.IsNew {
         if _, ok := a.Users[username.(string)]; !ok {
-            a.goBack(rw, req)
             auth_session.Options.MaxAge = -1 // kill the cookie
             auth_session.Save(req, rw)
-            a.addMessage(rw, req, "Log in to do that.")
+            if redirectWithMessage {
+                a.goBack(rw, req)
+                a.addMessage(rw, req, "Log in to do that.")
+            }
             return errors.New("User not found.")
         }
     }
     if username == nil {
-        a.goBack(rw, req)
-        a.addMessage(rw, req, "Log in to do that.")
+        if redirectWithMessage {
+            a.goBack(rw, req)
+            a.addMessage(rw, req, "Log in to do that.")
+        }
         return errors.New("User not logged in.")
     }
     context.Set(req, "username", username)
