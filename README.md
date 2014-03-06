@@ -15,5 +15,6 @@ know](https://github.com/Wombats/goauth/issues/new).
 ### TODO
 
 - User roles
+- Documentation/Better comments
 - Testing
 - User data validation for registration
