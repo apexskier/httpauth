@@ -8,7 +8,7 @@ See examples for example usage.
 **Note**
 
 This is the first time I've worked with implementing the details of cookie storage, authentication
-or any sort of real security. There are no guaruntees that this will work as expected, but I'd love
+or any sort of real security. There are no guarantees that this will work as expected, but I'd love
 feedback. If you have any issues or suggestions, please [let me
 know](https://github.com/Wombats/goauth/issues/new).
 
