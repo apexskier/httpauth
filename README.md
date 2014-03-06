@@ -9,3 +9,4 @@ See examples for example usage.
 
 - User roles
 - Testing
+- User data validation for registration
