@@ -4,10 +4,8 @@ import (
     "encoding/gob"
     "os"
     "errors"
-    "bytes"
     "net/http"
-    "code.google.com/p/go.crypto/pbkdf2"
-    "crypto/sha256"
+    "code.google.com/p/go.crypto/bcrypt"
     "github.com/gorilla/sessions"
     "github.com/gorilla/context"
 )
@@ -21,7 +19,6 @@ type UserData struct {
 type Authorizer struct {
     Users map[string]UserData
     Filepath string
-    Salt []byte
     cookiejar *sessions.CookieStore
 }
 
@@ -38,11 +35,7 @@ func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
     redirect_session.AddFlash(req.URL.Path)
 }
 
-func hashString(input string, salt []byte) []byte {
-    return pbkdf2.Key([]byte(input), salt, 4096, sha256.Size, sha256.New)
-}
-
-func NewAuthorizer(fpath string, salt string, key []byte) Authorizer {
+func NewAuthorizer(fpath string, key []byte) Authorizer {
     var a Authorizer
     if _, err := os.Stat(fpath); err == nil {
         f, err := os.Open(fpath)
@@ -59,7 +52,6 @@ func NewAuthorizer(fpath string, salt string, key []byte) Authorizer {
         a.Users = make(map[string]UserData)
     }
     a.Filepath = fpath
-    a.Salt = []byte(salt)
     a.cookiejar = sessions.NewCookieStore([]byte(key))
     return a
 }
@@ -89,8 +81,8 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
         a.addMessage(rw, req, "Invalid username or password.")
         return errors.New("User not found.")
     } else {
-        hash := hashString(u + p, a.Salt)
-        if !bytes.Equal(user.Hash, hash) {
+        verify := bcrypt.CompareHashAndPassword(user.Hash, []byte(u + p))
+        if verify != nil {
             a.addMessage(rw, req, "Invalid username or password.")
             return errors.New("Password doesn't match.")
         }
@@ -107,7 +99,11 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 }
 
 func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) (err error) {
-    hash := hashString(u + p, a.Salt)
+    hash, err := bcrypt.GenerateFromPassword([]byte(u + p), 8)
+    if err != nil {
+        a.addMessage(rw, req, "Couldn't save password: " + err.Error())
+        return
+    }
     err = a.Save(UserData{u, hash, e})
     if err != nil {
         a.addMessage(rw, req, err.Error())
@@ -131,7 +127,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
         return errors.New("No session existed.")
     }
     username := auth_session.Values["username"]
-    if !auth_session.IsNew {
+    if !auth_session.IsNew && username != nil {
         if _, ok := a.Users[username.(string)]; !ok {
             auth_session.Options.MaxAge = -1 // kill the cookie
             auth_session.Save(req, rw)
