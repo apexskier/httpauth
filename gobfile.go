@@ -37,9 +37,8 @@ func NewGobFileAuthBackend(filepath string) (b GobFileAuthBackend) {
 func (b GobFileAuthBackend) User(username string) (user UserData, ok bool) {
     if user, ok := b.users[username]; ok {
         return user, ok
-    } else {
-        return user, false
     }
+    return user, false
 }
 
 // Users returns a slice of all users.

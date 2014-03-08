@@ -81,7 +81,7 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
         }
     } else {
         a.addMessage(rw, req, "Invalid username or password.")
-        return errors.New("User not found")
+        return errors.New("user not found")
     }
     session.Values["username"] = u
     session.Save(req, rw)
