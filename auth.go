@@ -1,8 +1,6 @@
 package goauth
 
 import (
-    "encoding/gob"
-    "os"
     "errors"
     "net/http"
     "code.google.com/p/go.crypto/bcrypt"
@@ -18,8 +16,13 @@ type UserData struct {
 
 type Authorizer struct {
     Users map[string]UserData
-    Filepath string
     cookiejar *sessions.CookieStore
+    backend AuthBackend
+}
+
+type AuthBackend interface {
+    LoadAuth() (a Authorizer, err error)
+    SaveAuth(a Authorizer) (err error)
 }
 
 func (a Authorizer) addMessage(rw http.ResponseWriter, req *http.Request, message string) {
@@ -35,41 +38,17 @@ func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
     redirect_session.AddFlash(req.URL.Path)
 }
 
-func NewAuthorizer(fpath string, key []byte) Authorizer {
-    var a Authorizer
-    if _, err := os.Stat(fpath); err == nil {
-        f, err := os.Open(fpath)
-        defer f.Close()
-        if err != nil {
-            panic(err.Error())
-        }
-        dec := gob.NewDecoder(f)
-        dec.Decode(&a)
-    } else if !os.IsNotExist(err) {
-        panic(err.Error())
+func NewAuthorizer(backend AuthBackend, key []byte) (a Authorizer) {
+    a, err := backend.LoadAuth()
+    if err != nil {
+        panic(err.Error)
     }
     if a.Users == nil {
         a.Users = make(map[string]UserData)
     }
-    a.Filepath = fpath
     a.cookiejar = sessions.NewCookieStore([]byte(key))
+    a.backend = backend
     return a
-}
-
-func (a Authorizer) Save(u UserData) error {
-    if _, ok := a.Users[u.Username]; ok {
-        return errors.New("User already exists.")
-    }
-    a.Users[u.Username] = u
-
-    f, err := os.Create(a.Filepath)
-    defer f.Close()
-    if err != nil {
-        return errors.New("Auth file can't be edited. Is the data folder there?")
-    }
-    enc := gob.NewEncoder(f)
-    err = enc.Encode(a)
-    return nil
 }
 
 func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, dest string) error {
@@ -98,17 +77,26 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
     return nil
 }
 
-func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) (err error) {
+func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
+    if _, ok := a.Users[u]; ok {
+        a.addMessage(rw, req, "Username has been taken.")
+        return errors.New("User already exists.")
+    }
+
     hash, err := bcrypt.GenerateFromPassword([]byte(u + p), 8)
     if err != nil {
-        a.addMessage(rw, req, "Couldn't save password: " + err.Error())
-        return
+        return errors.New("Couldn't save password: " + err.Error())
     }
-    err = a.Save(UserData{u, hash, e})
+    user := (UserData{u, hash, e})
+
+    a.Users[u] = user
+
+    a.backend.SaveAuth(a)
+
     if err != nil {
         a.addMessage(rw, req, err.Error())
     }
-    return
+    return nil
 }
 
 func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirectWithMessage bool) error {
