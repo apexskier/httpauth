@@ -8,29 +8,37 @@ import (
     "github.com/gorilla/context"
 )
 
+// UserData represents a single user. It contains the users username and email
+// as well as a has of their username and password.
 type UserData struct {
     Username string
-    Hash []byte
     Email string
+    Hash []byte
 }
 
+// An Authorizer structure contains a list of users, the store of user session
+// cookies, and a reference to a backend storage system.
 type Authorizer struct {
     Users map[string]UserData
     cookiejar *sessions.CookieStore
     backend AuthBackend
 }
 
+// A type can be used as a backend if it implements the AuthBackend interface.
 type AuthBackend interface {
     LoadAuth() (a Authorizer, err error)
     SaveAuth(a Authorizer) (err error)
 }
 
+// Helper function to add a user directed message to a message queue.
 func (a Authorizer) addMessage(rw http.ResponseWriter, req *http.Request, message string) {
     message_session, _ := a.cookiejar.Get(req, "messages")
     defer message_session.Save(req, rw)
     message_session.AddFlash(message)
 }
 
+// Helper function to save a redirect to the page a user tried to visit before
+// logging in.
 func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
     redirect_session, _ := a.cookiejar.Get(req, "redirects");
     defer redirect_session.Save(req, rw)
@@ -38,6 +46,8 @@ func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
     redirect_session.AddFlash(req.URL.Path)
 }
 
+// Given an AuthBackend and a cookie store key, returns a new Authorizer.
+// If the key changes, logged in users will need to reauthenticate.
 func NewAuthorizer(backend AuthBackend, key []byte) (a Authorizer) {
     a, err := backend.LoadAuth()
     if err != nil {
@@ -51,7 +61,11 @@ func NewAuthorizer(backend AuthBackend, key []byte) (a Authorizer) {
     return a
 }
 
-func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, dest string) error {
+// Log a user in. They will be redirected to faildest with an invalid username
+// or password, and to the last location an authorization redirect was
+// triggered (if found) on success. A message will be added to the session on
+// failure with the reason
+func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, faildest string) error {
     session, _ := a.cookiejar.Get(req, "auth")
     if session.Values["username"] != nil {
         return errors.New("Already authenticated.")
@@ -71,12 +85,13 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 
     redirect_session, _ := a.cookiejar.Get(req, "redirects")
     if flashes := redirect_session.Flashes(); len(flashes) > 0 {
-        dest = flashes[0].(string)
+        faildest = flashes[0].(string)
     }
-    http.Redirect(rw, req, dest, http.StatusSeeOther)
+    http.Redirect(rw, req, faildest, http.StatusSeeOther)
     return nil
 }
 
+// Register and save a new user.
 func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
     if _, ok := a.Users[u]; ok {
         a.addMessage(rw, req, "Username has been taken.")
