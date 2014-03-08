@@ -6,11 +6,14 @@ import (
     "errors"
 )
 
+// GobFileAuthBackend stores user data and the location of the gob file.
 type GobFileAuthBackend struct {
     filepath string
     users map[string]UserData
 }
 
+// NewGobFileAuthBackend initializes a new backend by loading a map of users
+// from a file.
 func NewGobFileAuthBackend(filepath string) (b GobFileAuthBackend) {
     b.filepath = filepath
     if _, err := os.Stat(b.filepath); err == nil {
@@ -30,6 +33,7 @@ func NewGobFileAuthBackend(filepath string) (b GobFileAuthBackend) {
     return b
 }
 
+// User returns the user with the given username.
 func (b GobFileAuthBackend) User(username string) (user UserData, ok bool) {
     if user, ok := b.users[username]; ok {
         return user, ok
@@ -38,6 +42,7 @@ func (b GobFileAuthBackend) User(username string) (user UserData, ok bool) {
     }
 }
 
+// Users returns a slice of all users.
 func (b GobFileAuthBackend) Users() (us []UserData) {
     for _, user := range b.users {
         us = append(us, user)
@@ -45,12 +50,14 @@ func (b GobFileAuthBackend) Users() (us []UserData) {
     return
 }
 
+// SaveUser adds a new user, replacing one with the same username, and saves a
+// gob file.
 func (b GobFileAuthBackend) SaveUser(user UserData) (err error) {
     b.users[user.Username] = user
     f, err := os.Create(b.filepath)
     defer f.Close()
     if err != nil {
-        return errors.New("Auth file can't be edited. Is the data folder there?")
+        return errors.New("auth file can't be edited. Is the data folder there?")
     }
     enc := gob.NewEncoder(f)
     err = enc.Encode(b.users)

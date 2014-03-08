@@ -50,10 +50,10 @@ func (a Authorizer) addMessage(rw http.ResponseWriter, req *http.Request, messag
 // Helper function to save a redirect to the page a user tried to visit before
 // logging in.
 func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
-    redirect_session, _ := a.cookiejar.Get(req, "redirects");
-    defer redirect_session.Save(req, rw)
-    redirect_session.Flashes()
-    redirect_session.AddFlash(req.URL.Path)
+    redirectSession, _ := a.cookiejar.Get(req, "redirects");
+    defer redirectSession.Save(req, rw)
+    redirectSession.Flashes()
+    redirectSession.AddFlash(req.URL.Path)
 }
 
 // NewAuthorizer returns a new Authorizer given an AuthBackend and a cookie
@@ -71,13 +71,13 @@ func NewAuthorizer(backend AuthBackend, key []byte) (a Authorizer) {
 func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, faildest string) error {
     session, _ := a.cookiejar.Get(req, "auth")
     if session.Values["username"] != nil {
-        return errors.New("Already authenticated")
+        return errors.New("already authenticated")
     }
     if user, ok := a.backend.User(u); ok {
         verify := bcrypt.CompareHashAndPassword(user.Hash, []byte(u + p))
         if verify != nil {
             a.addMessage(rw, req, "Invalid username or password.")
-            return errors.New("Password doesn't match")
+            return errors.New("password doesn't match")
         }
     } else {
         a.addMessage(rw, req, "Invalid username or password.")
@@ -86,8 +86,8 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
     session.Values["username"] = u
     session.Save(req, rw)
 
-    redirect_session, _ := a.cookiejar.Get(req, "redirects")
-    if flashes := redirect_session.Flashes(); len(flashes) > 0 {
+    redirectSession, _ := a.cookiejar.Get(req, "redirects")
+    if flashes := redirectSession.Flashes(); len(flashes) > 0 {
         faildest = flashes[0].(string)
     }
     http.Redirect(rw, req, faildest, http.StatusSeeOther)
@@ -99,12 +99,12 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
     if _, ok := a.backend.User(u); ok {
         a.addMessage(rw, req, "Username has been taken.")
-        return errors.New("User already exists")
+        return errors.New("user already exists")
     }
 
     hash, err := bcrypt.GenerateFromPassword([]byte(u + p), 8)
     if err != nil {
-        return errors.New("Couldn't save password: " + err.Error())
+        return errors.New("couldn't save password: " + err.Error())
     }
 
     user := UserData{u, e, hash}
@@ -122,30 +122,30 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string
 // messages list. The next time the user logs in, they will be redirected back
 // to the saved page.
 func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirectWithMessage bool) error {
-    auth_session, err := a.cookiejar.Get(req, "auth")
+    authSession, err := a.cookiejar.Get(req, "auth")
     if err != nil {
         if redirectWithMessage {
             a.goBack(rw, req)
         }
-        return errors.New("New authorization session. Possible restart of server")
+        return errors.New("new authorization session. Possible restart of server")
     }
-    if auth_session.IsNew {
+    if authSession.IsNew {
         if redirectWithMessage {
             a.goBack(rw, req)
             a.addMessage(rw, req, "Log in to do that.")
         }
-        return errors.New("No session existed")
+        return errors.New("no session existed")
     }
-    username := auth_session.Values["username"]
-    if !auth_session.IsNew && username != nil {
+    username := authSession.Values["username"]
+    if !authSession.IsNew && username != nil {
         if _, ok := a.backend.User(username.(string)); !ok {
-            auth_session.Options.MaxAge = -1 // kill the cookie
-            auth_session.Save(req, rw)
+            authSession.Options.MaxAge = -1 // kill the cookie
+            authSession.Save(req, rw)
             if redirectWithMessage {
                 a.goBack(rw, req)
                 a.addMessage(rw, req, "Log in to do that.")
             }
-            return errors.New("User not found")
+            return errors.New("user not found")
         }
     }
     if username == nil {
@@ -153,7 +153,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
             a.goBack(rw, req)
             a.addMessage(rw, req, "Log in to do that.")
         }
-        return errors.New("User not logged in")
+        return errors.New("user not logged in")
     }
     context.Set(req, "username", username)
     return nil
