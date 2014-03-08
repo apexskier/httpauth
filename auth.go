@@ -1,15 +1,13 @@
+// This package implements cookie/session based authentication. Intended for
+// use with the net/http or github.com/gorilla/mux packages, but may work with
+// github.com/codegangsta/martini as well. Internally, credentials are stored
+// as a username + password hash, computed with bcrypt.
+//
+// Users can be redirected to the page that triggered an authentication error.
+//
+// Messages describing the reason a user could not authenticate are saved in a
+// cookie, and can be accessed with the goauth.Messages function.
 package goauth
-/*
-This package implements cookie/session based authentication. Intended for use
-with the net/http or github.com/gorilla/mux packages, but may work with
-github.com/codegangsta/martini as well. Internally, credentials are stored as a
-username + password hash, computed with bcrypt.
-
-Users can be redirected to the page that triggered an authentication error.
-
-Messages describing the reason a user could not authenticate are saved in a
-cookie, and can be accessed with the goauth.Messages function.
-*/
 
 import (
     "errors"
