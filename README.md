@@ -1,4 +1,5 @@
 # Wombats Go Authentication
+[![GoDoc](https://godoc.org/github.com/Wombats/goauth?status.png)](https://godoc.org/github.com/Wombats/goauth)
 
 This package uses the [Gorilla web toolkit](http://www.gorillatoolkit.org/)'s
 sessions and context packages to implement a user authorization system for web

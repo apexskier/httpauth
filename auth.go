@@ -1,4 +1,4 @@
-// This package implements cookie/session based authentication. Intended for
+// Package goauth implements cookie/session based authentication. Intended for
 // use with the net/http or github.com/gorilla/mux packages, but may work with
 // github.com/codegangsta/martini as well. Internally, credentials are stored
 // as a username + password hash, computed with bcrypt.
@@ -25,14 +25,15 @@ type UserData struct {
     Hash []byte
 }
 
-// An Authorizer structure contains a list of users, the store of user session
-// cookies, and a reference to a backend storage system.
+// Authorizer structures contain the store of user session cookies a reference
+// to a backend storage system.
 type Authorizer struct {
     cookiejar *sessions.CookieStore
     backend AuthBackend
 }
 
-// A type can be used as a backend if it implements the AuthBackend interface.
+// The AuthBackend interface defines a set of methods an AuthBackend must
+// implement.
 type AuthBackend interface {
     SaveUser(u UserData) (err error)
     User(username string) (user UserData, ok bool)
@@ -55,16 +56,16 @@ func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
     redirect_session.AddFlash(req.URL.Path)
 }
 
-// Given an AuthBackend and a cookie store key, returns a new Authorizer.
-// If the key changes, logged in users will need to reauthenticate.
+// NewAuthorizer returns a new Authorizer given an AuthBackend and a cookie
+// store key.  If the key changes, logged in users will need to reauthenticate.
 func NewAuthorizer(backend AuthBackend, key []byte) (a Authorizer) {
     a.cookiejar = sessions.NewCookieStore([]byte(key))
     a.backend = backend
     return a
 }
 
-// Log a user in. They will be redirected to faildest with an invalid username
-// or password, and to the last location an authorization redirect was
+// Login logs a user in. They will be redirected to faildest with an invalid
+// username or password, and to the last location an authorization redirect was
 // triggered (if found) on success. A message will be added to the session on
 // failure with the reason
 func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, faildest string) error {
@@ -115,10 +116,11 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string
     return nil
 }
 
-// Check if a user is logged in. Returns an error on failed authentication. If
-// redirectWithMessage is set, the page being authorized will be saved and a
-// "Login to do that." message will be saved to the messages list. The next
-// time the user logs in, they will be redirected back to the saved page.
+// Authorize checks if a user is logged in and returns an error on failed
+// authentication. If redirectWithMessage is set, the page being authorized
+// will be saved and a "Login to do that." message will be saved to the
+// messages list. The next time the user logs in, they will be redirected back
+// to the saved page.
 func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirectWithMessage bool) error {
     auth_session, err := a.cookiejar.Get(req, "auth")
     if err != nil {
@@ -157,7 +159,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
     return nil
 }
 
-// Clear an authentication session and add a logged out message.
+// Logout clears an authentication session and add a logged out message.
 func (a Authorizer) Logout(rw http.ResponseWriter, req *http.Request) error {
     session, _ := a.cookiejar.Get(req, "auth")
     defer session.Save(req, rw)
@@ -167,7 +169,7 @@ func (a Authorizer) Logout(rw http.ResponseWriter, req *http.Request) error {
     return nil
 }
 
-// Fetch a list of messages saved. Use this to get a nice message to print to
+// Messages fetches a list of saved messages. Use this to get a nice message to print to
 // the user on a login page or registration page in case something happened
 // (username taken, invalid credentials, successful logout, etc).
 func (a Authorizer) Messages(rw http.ResponseWriter, req *http.Request) []string {
