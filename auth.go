@@ -19,15 +19,15 @@ type UserData struct {
 // An Authorizer structure contains a list of users, the store of user session
 // cookies, and a reference to a backend storage system.
 type Authorizer struct {
-    Users map[string]UserData
     cookiejar *sessions.CookieStore
     backend AuthBackend
 }
 
 // A type can be used as a backend if it implements the AuthBackend interface.
 type AuthBackend interface {
-    LoadAuth() (a Authorizer, err error)
-    SaveAuth(a Authorizer) (err error)
+    SaveUser(u UserData) (err error)
+    User(username string) (user UserData, ok bool)
+    Users() (users []UserData)
 }
 
 // Helper function to add a user directed message to a message queue.
@@ -49,13 +49,6 @@ func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
 // Given an AuthBackend and a cookie store key, returns a new Authorizer.
 // If the key changes, logged in users will need to reauthenticate.
 func NewAuthorizer(backend AuthBackend, key []byte) (a Authorizer) {
-    a, err := backend.LoadAuth()
-    if err != nil {
-        panic(err.Error)
-    }
-    if a.Users == nil {
-        a.Users = make(map[string]UserData)
-    }
     a.cookiejar = sessions.NewCookieStore([]byte(key))
     a.backend = backend
     return a
@@ -70,7 +63,7 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
     if session.Values["username"] != nil {
         return errors.New("Already authenticated.")
     }
-    if user, ok := a.Users[u]; !ok {
+    if user, ok := a.backend.User(u); !ok {
         a.addMessage(rw, req, "Invalid username or password.")
         return errors.New("User not found.")
     } else {
@@ -91,9 +84,10 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
     return nil
 }
 
-// Register and save a new user.
+// Register and save a new user. Returns an error and adds a message if the
+// username is in use.
 func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
-    if _, ok := a.Users[u]; ok {
+    if _, ok := a.backend.User(u); ok {
         a.addMessage(rw, req, "Username has been taken.")
         return errors.New("User already exists.")
     }
@@ -102,18 +96,20 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string
     if err != nil {
         return errors.New("Couldn't save password: " + err.Error())
     }
-    user := (UserData{u, hash, e})
 
-    a.Users[u] = user
+    user := UserData{u, e, hash}
 
-    a.backend.SaveAuth(a)
-
+    err = a.backend.SaveUser(user)
     if err != nil {
         a.addMessage(rw, req, err.Error())
     }
     return nil
 }
 
+// Check if a user is logged in. Returns an error on failed authentication. If
+// redirectWithMessage is set, the page being authorized will be saved and a
+// "Login to do that." message will be saved to the messages list. The next
+// time the user logs in, they will be redirected back to the saved page.
 func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirectWithMessage bool) error {
     auth_session, err := a.cookiejar.Get(req, "auth")
     if err != nil {
@@ -131,7 +127,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
     }
     username := auth_session.Values["username"]
     if !auth_session.IsNew && username != nil {
-        if _, ok := a.Users[username.(string)]; !ok {
+        if _, ok := a.backend.User(username.(string)); !ok {
             auth_session.Options.MaxAge = -1 // kill the cookie
             auth_session.Save(req, rw)
             if redirectWithMessage {
