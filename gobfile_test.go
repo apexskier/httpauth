@@ -6,11 +6,6 @@ import (
     "bytes"
 )
 
-var (
-    b GobFileAuthBackend
-    file = "auth_test.gob"
-)
-
 func init() {
     os.Remove(file)
     b = NewGobFileAuthBackend(file)

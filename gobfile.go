@@ -51,8 +51,13 @@ func (b GobFileAuthBackend) Users() (us []UserData) {
 
 // SaveUser adds a new user, replacing one with the same username, and saves a
 // gob file.
-func (b GobFileAuthBackend) SaveUser(user UserData) (err error) {
+func (b GobFileAuthBackend) SaveUser(user UserData) error {
     b.users[user.Username] = user
+    err := b.save()
+    return err
+}
+
+func (b GobFileAuthBackend) save() error {
     f, err := os.Create(b.filepath)
     defer f.Close()
     if err != nil {
@@ -60,5 +65,11 @@ func (b GobFileAuthBackend) SaveUser(user UserData) (err error) {
     }
     enc := gob.NewEncoder(f)
     err = enc.Encode(b.users)
-    return
+    return err
+}
+
+func (b GobFileAuthBackend) DeleteUser(username string) error {
+    delete(b.users, username)
+    err := b.save()
+    return err
 }

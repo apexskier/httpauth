@@ -35,9 +35,10 @@ type Authorizer struct {
 // The AuthBackend interface defines a set of methods an AuthBackend must
 // implement.
 type AuthBackend interface {
-    SaveUser(u UserData) (err error)
+    SaveUser(u UserData) error
     User(username string) (user UserData, ok bool)
     Users() (users []UserData)
+    DeleteUser(username string) error
 }
 
 // Helper function to add a user directed message to a message queue.
@@ -64,11 +65,10 @@ func NewAuthorizer(backend AuthBackend, key []byte) (a Authorizer) {
     return a
 }
 
-// Login logs a user in. They will be redirected to faildest with an invalid
-// username or password, and to the last location an authorization redirect was
-// triggered (if found) on success. A message will be added to the session on
-// failure with the reason
-func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, faildest string) error {
+// Login logs a user in. They will be redirected to dest or to the last
+// location an authorization redirect was triggered (if found) on success. A
+// message will be added to the session on failure with the reason.
+func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, dest string) error {
     session, _ := a.cookiejar.Get(req, "auth")
     if session.Values["username"] != nil {
         return errors.New("already authenticated")
@@ -88,9 +88,9 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 
     redirectSession, _ := a.cookiejar.Get(req, "redirects")
     if flashes := redirectSession.Flashes(); len(flashes) > 0 {
-        faildest = flashes[0].(string)
+        dest = flashes[0].(string)
     }
-    http.Redirect(rw, req, faildest, http.StatusSeeOther)
+    http.Redirect(rw, req, dest, http.StatusSeeOther)
     return nil
 }
 
@@ -167,6 +167,11 @@ func (a Authorizer) Logout(rw http.ResponseWriter, req *http.Request) error {
     session.Options.MaxAge = -1 // kill the cookie
     a.addMessage(rw, req, "Logged out.")
     return nil
+}
+
+func (a Authorizer) DeleteUser(username string) error {
+    err := a.backend.DeleteUser(username)
+    return err
 }
 
 // Messages fetches a list of saved messages. Use this to get a nice message to print to
