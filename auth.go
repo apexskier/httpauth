@@ -42,9 +42,9 @@ type AuthBackend interface {
 
 // Helper function to add a user directed message to a message queue.
 func (a Authorizer) addMessage(rw http.ResponseWriter, req *http.Request, message string) {
-    message_session, _ := a.cookiejar.Get(req, "messages")
-    defer message_session.Save(req, rw)
-    message_session.AddFlash(message)
+    messageSession, _ := a.cookiejar.Get(req, "messages")
+    defer messageSession.Save(req, rw)
+    messageSession.AddFlash(message)
 }
 
 // Helper function to save a redirect to the page a user tried to visit before
@@ -71,17 +71,17 @@ func NewAuthorizer(backend AuthBackend, key []byte) (a Authorizer) {
 func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, faildest string) error {
     session, _ := a.cookiejar.Get(req, "auth")
     if session.Values["username"] != nil {
-        return errors.New("Already authenticated.")
+        return errors.New("Already authenticated")
     }
-    if user, ok := a.backend.User(u); !ok {
-        a.addMessage(rw, req, "Invalid username or password.")
-        return errors.New("User not found.")
-    } else {
+    if user, ok := a.backend.User(u); ok {
         verify := bcrypt.CompareHashAndPassword(user.Hash, []byte(u + p))
         if verify != nil {
             a.addMessage(rw, req, "Invalid username or password.")
-            return errors.New("Password doesn't match.")
+            return errors.New("Password doesn't match")
         }
+    } else {
+        a.addMessage(rw, req, "Invalid username or password.")
+        return errors.New("User not found")
     }
     session.Values["username"] = u
     session.Save(req, rw)
@@ -99,7 +99,7 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
     if _, ok := a.backend.User(u); ok {
         a.addMessage(rw, req, "Username has been taken.")
-        return errors.New("User already exists.")
+        return errors.New("User already exists")
     }
 
     hash, err := bcrypt.GenerateFromPassword([]byte(u + p), 8)
@@ -127,14 +127,14 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
         if redirectWithMessage {
             a.goBack(rw, req)
         }
-        return errors.New("New authorization session. Possible restart of server.")
+        return errors.New("New authorization session. Possible restart of server")
     }
     if auth_session.IsNew {
         if redirectWithMessage {
             a.goBack(rw, req)
             a.addMessage(rw, req, "Log in to do that.")
         }
-        return errors.New("No session existed.")
+        return errors.New("No session existed")
     }
     username := auth_session.Values["username"]
     if !auth_session.IsNew && username != nil {
@@ -145,7 +145,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
                 a.goBack(rw, req)
                 a.addMessage(rw, req, "Log in to do that.")
             }
-            return errors.New("User not found.")
+            return errors.New("User not found")
         }
     }
     if username == nil {
@@ -153,7 +153,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
             a.goBack(rw, req)
             a.addMessage(rw, req, "Log in to do that.")
         }
-        return errors.New("User not logged in.")
+        return errors.New("User not logged in")
     }
     context.Set(req, "username", username)
     return nil
