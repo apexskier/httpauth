@@ -148,6 +148,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
     return nil
 }
 
+// Clear an authentication session and add a logged out message.
 func (a Authorizer) Logout(rw http.ResponseWriter, req *http.Request) error {
     session, _ := a.cookiejar.Get(req, "auth")
     defer session.Save(req, rw)
@@ -157,6 +158,9 @@ func (a Authorizer) Logout(rw http.ResponseWriter, req *http.Request) error {
     return nil
 }
 
+// Fetch a list of messages saved. Use this to get a nice message to print to
+// the user on a login page or registration page in case something happened
+// (username taken, invalid credentials, successful logout, etc).
 func (a Authorizer) Messages(rw http.ResponseWriter, req *http.Request) []string {
     session, _ := a.cookiejar.Get(req, "messages")
     flashes := session.Flashes()
