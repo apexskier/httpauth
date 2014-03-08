@@ -169,6 +169,7 @@ func (a Authorizer) Logout(rw http.ResponseWriter, req *http.Request) error {
     return nil
 }
 
+// DeleteUser removes a user from the Authorizer.
 func (a Authorizer) DeleteUser(username string) error {
     err := a.backend.DeleteUser(username)
     return err
