@@ -136,3 +136,15 @@ func TestUsers(t *testing.T) {
         t.Fatal("User password not correct.")
     }
 }
+
+func TestGobDeleteUser(t *testing.T) {
+    if err := b.DeleteUser("username"); err != nil {
+        t.Fatalf("DeleteUser error: %v", err)
+    }
+    if _, ok := b.User("username"); ok {
+        t.Fatalf("DeleteUser: User not deleted")
+    }
+    if err := b.DeleteUser("username"); err != nil {
+        t.Fatalf("DeleteUser error: %v", err)
+    }
+}
