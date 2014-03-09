@@ -116,6 +116,7 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string
     return nil
 }
 
+// Update changes data for an existing user.
 func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
     if _, ok := a.backend.User(u); !ok {
         a.addMessage(rw, req, "User doesn't exist.")
