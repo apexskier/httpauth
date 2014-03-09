@@ -116,6 +116,26 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string
     return nil
 }
 
+func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
+    if _, ok := a.backend.User(u); !ok {
+        a.addMessage(rw, req, "User doesn't exist.")
+        return errors.New("user doesn't exists")
+    }
+
+    hash, err := bcrypt.GenerateFromPassword([]byte(u + p), 8)
+    if err != nil {
+        return errors.New("couldn't save password: " + err.Error())
+    }
+
+    user := UserData{u, e, hash}
+
+    err = a.backend.SaveUser(user)
+    if err != nil {
+        a.addMessage(rw, req, err.Error())
+    }
+    return nil
+}
+
 // Authorize checks if a user is logged in and returns an error on failed
 // authentication. If redirectWithMessage is set, the page being authorized
 // will be saved and a "Login to do that." message will be saved to the

@@ -70,13 +70,16 @@ func (b SqlAuthBackend) Users() (us []UserData) {
     return
 }
 
-// SaveUser adds a new user, replacing one with the same username, and saves a
-// gob file.
-func (b SqlAuthBackend) SaveUser(user UserData) error {
+// SaveUser adds a new user, replacing one with the same username.
+func (b SqlAuthBackend) SaveUser(user UserData) (err error) {
     con := b.connect()
     defer con.Close()
-    _, err := con.Exec("insert into goauth (Username, Email, Hash) values (?, ?, ?)", user.Username, user.Email, user.Hash)
-    return err
+    if _, ok := b.User(user.Username); !ok {
+        _, err = con.Exec("insert into goauth (Username, Email, Hash) values (?, ?, ?)", user.Username, user.Email, user.Hash)
+    } else {
+        _, err = con.Exec("update goauth set Email=?, Hash=? where Username=?", user.Email, user.Hash, user.Username)
+    }
+    return
 }
 
 // DeleteUser removes a user.
