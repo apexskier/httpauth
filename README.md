@@ -5,6 +5,9 @@ This package uses the [Gorilla web toolkit](http://www.gorillatoolkit.org/)'s
 sessions and context packages to implement a user authorization system for web
 servers written in Go.
 
+Multiple user data storage backends are available, and new ones can be
+relatively easily implemented.
+
 Using [bcrypt](http://codahale.com/how-to-safely-store-a-password/) for
 password hashing.
 
@@ -21,6 +24,4 @@ know](https://github.com/Wombats/goauth/issues/new).
 ### TODO
 
 - User roles
-- Documentation/Better comments
-- Testing
-- User data validation for registration
+- SMTP email validation (key based)
