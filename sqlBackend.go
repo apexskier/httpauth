@@ -6,11 +6,10 @@ import (
     //"errors"
 )
 
-// SqlAuthBackend stores user data and the location of the gob file.
+// SqlAuthBackend database and database connection information.
 type SqlAuthBackend struct {
     driverName string
     dataSourceName string
-    db *sql.DB
 }
 
 func (b SqlAuthBackend) connect() *sql.DB {
@@ -21,12 +20,13 @@ func (b SqlAuthBackend) connect() *sql.DB {
     return con
 }
 
-// NewSqlAuthBackend initializes a new backend by loading a map of users
-// from a file.
+// NewSqlAuthBackend initializes a new backend by testing the database
+// connection and making sure the storage table exists.
 func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend) {
     b.driverName = driverName
     b.dataSourceName = dataSourceName
     con := b.connect()
+    defer con.Close()
     con.Exec(`create table if not exists goauth (Username varchar(255), Email varchar(255), Hash varchar(255), primary key (Username))`)
     return b
 }
@@ -35,7 +35,7 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend) {
 func (b SqlAuthBackend) User(username string) (user UserData, ok bool) {
     con := b.connect()
     defer con.Close()
-    row := con.QueryRow("select Email, Hash from goauth where Username=?", username)
+    row := con.QueryRow(`select Email, Hash from goauth where Username=?`, username)
     var (
         email string
         hash []byte
@@ -53,6 +53,7 @@ func (b SqlAuthBackend) User(username string) (user UserData, ok bool) {
 // Users returns a slice of all users.
 func (b SqlAuthBackend) Users() (us []UserData) {
     con := b.connect()
+    defer con.Close()
     rows, err := con.Query("select Username, Email, Hash from goauth")
     if err != nil { panic(err) }
     var (
@@ -71,6 +72,7 @@ func (b SqlAuthBackend) Users() (us []UserData) {
 // gob file.
 func (b SqlAuthBackend) SaveUser(user UserData) error {
     con := b.connect()
+    defer con.Close()
     _, err := con.Exec("insert into goauth (Username, Email, Hash) values (?, ?, ?)", user.Username, user.Email, user.Hash)
     return err
 }
@@ -78,6 +80,7 @@ func (b SqlAuthBackend) SaveUser(user UserData) error {
 // DeleteUser removes a user.
 func (b SqlAuthBackend) DeleteUser(username string) error {
     con := b.connect()
+    defer con.Close()
     _, err := con.Exec("delete from goauth where Username=?", username)
     return err
 }
