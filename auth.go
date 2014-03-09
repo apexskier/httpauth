@@ -1,12 +1,18 @@
 // Package goauth implements cookie/session based authentication. Intended for
 // use with the net/http or github.com/gorilla/mux packages, but may work with
-// github.com/codegangsta/martini as well. Internally, credentials are stored
-// as a username + password hash, computed with bcrypt.
+// github.com/codegangsta/martini as well. Credentials are stored as a username
+// + password hash, computed with bcrypt.
+//
+// Two user storage systems are currently implemented: file based (encoding/gob)
+// and sql databases (database/sql).
 //
 // Users can be redirected to the page that triggered an authentication error.
 //
 // Messages describing the reason a user could not authenticate are saved in a
-// cookie, and can be accessed with the goauth.Messages function.
+// cookie, and can be accessed with the Messages function.
+//
+// Example source can be found at
+// https://github.com/apexskier/goauth/blob/master/examples/server.go
 package goauth
 
 import (
