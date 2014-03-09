@@ -14,7 +14,6 @@ import (
     "net/http"
     "code.google.com/p/go.crypto/bcrypt"
     "github.com/gorilla/sessions"
-    "github.com/gorilla/context"
 )
 
 // UserData represents a single user. It contains the users username and email
@@ -116,21 +115,39 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string
     return nil
 }
 
-// Update changes data for an existing user.
-func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
-    if _, ok := a.backend.User(u); !ok {
+// Update changes data for an existing user. Needs thought...
+func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, e string) error {
+    var (
+        hash []byte
+        email string
+    )
+    authSession, err := a.cookiejar.Get(req, "auth")
+    username, ok := authSession.Values["username"].(string)
+    if !ok {
+        return errors.New("Not logged in")
+    }
+    user, ok := a.backend.User(username)
+    if !ok {
         a.addMessage(rw, req, "User doesn't exist.")
         return errors.New("user doesn't exists")
     }
-
-    hash, err := bcrypt.GenerateFromPassword([]byte(u + p), 8)
-    if err != nil {
-        return errors.New("couldn't save password: " + err.Error())
+    if p != "" {
+        hash, err = bcrypt.GenerateFromPassword([]byte(username + p), 8)
+        if err != nil {
+            return errors.New("couldn't save password: " + err.Error())
+        }
+    } else {
+        hash = user.Hash
+    }
+    if e != "" {
+        email = e
+    } else {
+        email = user.Email
     }
 
-    user := UserData{u, e, hash}
+    newuser := UserData{username, email, hash}
 
-    err = a.backend.SaveUser(user)
+    err = a.backend.SaveUser(newuser)
     if err != nil {
         a.addMessage(rw, req, err.Error())
     }
@@ -148,7 +165,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
         if redirectWithMessage {
             a.goBack(rw, req)
         }
-        return errors.New("new authorization session. Possible restart of server")
+        return errors.New("new authorization session")
     }
     if authSession.IsNew {
         if redirectWithMessage {
@@ -176,8 +193,23 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
         }
         return errors.New("user not logged in")
     }
-    context.Set(req, "username", username)
     return nil
+}
+
+// CurrentUser returns the currently logged in user and a boolean validating
+// the information.
+func (a Authorizer) CurrentUser(rw http.ResponseWriter, req *http.Request) (user UserData, ok bool) {
+    if err := a.Authorize(rw, req, false); err != nil {
+        return user, false
+    }
+    authSession, _ := a.cookiejar.Get(req, "auth")
+
+    username, ok := authSession.Values["username"].(string)
+    if !ok {
+        return user, ok
+    }
+    user, ok = a.backend.User(username)
+    return user, ok
 }
 
 // Logout clears an authentication session and add a logged out message.

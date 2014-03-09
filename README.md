@@ -6,12 +6,13 @@ sessions and context packages to implement a user authorization system for web
 servers written in Go.
 
 Multiple user data storage backends are available, and new ones can be
-relatively easily implemented.
+implemented relatively easily.
 
 Using [bcrypt](http://codahale.com/how-to-safely-store-a-password/) for
 password hashing.
 
-See examples for example usage.
+Run `go run server.go` from the examples directory and visit `localhost:8080`
+for and example. You can login with the username and password "test".
 
 **Note**
 
