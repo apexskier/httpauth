@@ -2,8 +2,6 @@ package goauth
 
 import (
     "database/sql"
-    //"os"
-    //"errors"
 )
 
 // SqlAuthBackend database and database connection information.
@@ -21,7 +19,11 @@ func (b SqlAuthBackend) connect() *sql.DB {
 }
 
 // NewSqlAuthBackend initializes a new backend by testing the database
-// connection and making sure the storage table exists.
+// connection and making sure the storage table exists. The table is called
+// goauth.
+//
+// Be sure to import "database/sql" and your driver of choice. You may need to
+// open a test connection to validate the import.
 func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend) {
     b.driverName = driverName
     b.dataSourceName = dataSourceName
