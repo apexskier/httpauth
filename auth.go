@@ -13,7 +13,7 @@
 //
 // Example source can be found at
 // https://github.com/apexskier/goauth/blob/master/examples/server.go
-package goauth
+package httpauth
 
 import (
     "errors"

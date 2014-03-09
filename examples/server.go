@@ -2,7 +2,7 @@ package main
 
 import (
     "net/http"
-    "github.com/apexskier/goauth"
+    "github.com/apexskier/httpauth"
     "github.com/gorilla/mux"
     "fmt"
 )

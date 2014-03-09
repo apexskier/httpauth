@@ -1,4 +1,4 @@
-package goauth
+package httpauth
 
 import (
     "encoding/gob"
