@@ -22,8 +22,13 @@ func (b SqlAuthBackend) connect() *sql.DB {
 // connection and making sure the storage table exists. The table is called
 // goauth.
 //
-// Be sure to import "database/sql" and your driver of choice. You may need to
-// open a test connection to validate the import.
+// This uses the databases/sql package to open a connection. Its parameters
+// should match the sql.Open function. See
+// http://golang.org/pkg/database/sql/#Open for more information.
+//
+// Be sure to import "database/sql" and your driver of choice. If you're not
+// using sql for your own purposes, you'll need to use the underscore to import
+// for side effects; see http://golang.org/doc/effective_go.html#blank_import.
 func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend) {
     b.driverName = driverName
     b.dataSourceName = dataSourceName
