@@ -1,4 +1,4 @@
-// Package goauth implements cookie/session based authentication. Intended for
+// Package httpauth implements cookie/session based authentication. Intended for
 // use with the net/http or github.com/gorilla/mux packages, but may work with
 // github.com/codegangsta/martini as well. Credentials are stored as a username
 // + password hash, computed with bcrypt.
@@ -12,7 +12,7 @@
 // cookie, and can be accessed with the Messages function.
 //
 // Example source can be found at
-// https://github.com/apexskier/goauth/blob/master/examples/server.go
+// https://github.com/apexskier/httpauth/blob/master/examples/server.go
 package httpauth
 
 import (
