@@ -1,7 +1,7 @@
-// Package httpauth implements cookie/session based authentication. Intended for
-// use with the net/http or github.com/gorilla/mux packages, but may work with
-// github.com/codegangsta/martini as well. Credentials are stored as a username
-// + password hash, computed with bcrypt.
+// Package httpauth implements cookie/session based authentication and
+// authorization. Intended for use with the net/http or github.com/gorilla/mux
+// packages, but may work with github.com/codegangsta/martini as well.
+// Credentials are stored as a username + password hash, computed with bcrypt.
 //
 // Two user storage systems are currently implemented: file based (encoding/gob)
 // and sql databases (database/sql).
