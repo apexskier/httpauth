@@ -8,14 +8,14 @@ import (
 )
 
 var (
-    backend goauth.GobFileAuthBackend
-    aaa goauth.Authorizer
+    backend httpauth.GobFileAuthBackend
+    aaa httpauth.Authorizer
 )
 
 
 func main() {
-    backend = goauth.NewGobFileAuthBackend("auth.gob")
-    aaa = goauth.NewAuthorizer(backend, []byte("cookie-encryption-key"))
+    backend = httpauth.NewGobFileAuthBackend("auth.gob")
+    aaa = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"))
 
     // set up routers and route handlers
     r := mux.NewRouter()
@@ -36,7 +36,7 @@ func getLogin(rw http.ResponseWriter, req *http.Request) {
         <html>
         <head><title>Login</title></head>
         <body>
-        <h1>Goauth example</h1>
+        <h1>Httpauth example</h1>
         <h2>Entry Page</h2>
         <p><b>Messages: %v</b></p>
         <h3>Login</h3>
@@ -94,7 +94,7 @@ func handlePage(rw http.ResponseWriter, req *http.Request) {
             <html>
             <head><title>Secret page</title></head>
             <body>
-                <h1>Goauth example<h1>
+                <h1>Httpauth example<h1>
                 <h2>Hello %v</h2>
                 <p>Your email is %v. <a href="/logout">Logout</a></p>
                 <form action="/change" method="post" id="change">
