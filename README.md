@@ -1,5 +1,5 @@
 # Go Session Authentication
-[![GoDoc](https://godoc.org/github.com/apexskier/httpauth?status.png)](https://godoc.org/github.com/Wombats/goauth)
+[![GoDoc](https://godoc.org/github.com/apexskier/httpauth?status.png)](https://godoc.org/github.com/apexskier/httpauth)
 
 This package uses the [Gorilla web toolkit](http://www.gorillatoolkit.org/)'s
 sessions and package to implement a user authorization system for web servers
