@@ -16,25 +16,25 @@
 package httpauth
 
 import (
-    "errors"
-    "net/http"
     "code.google.com/p/go.crypto/bcrypt"
+    "errors"
     "github.com/gorilla/sessions"
+    "net/http"
 )
 
 // UserData represents a single user. It contains the users username and email
 // as well as a has of their username and password.
 type UserData struct {
     Username string
-    Email string
-    Hash []byte
+    Email    string
+    Hash     []byte
 }
 
 // Authorizer structures contain the store of user session cookies a reference
 // to a backend storage system.
 type Authorizer struct {
     cookiejar *sessions.CookieStore
-    backend AuthBackend
+    backend   AuthBackend
 }
 
 // The AuthBackend interface defines a set of methods an AuthBackend must
@@ -56,7 +56,7 @@ func (a Authorizer) addMessage(rw http.ResponseWriter, req *http.Request, messag
 // Helper function to save a redirect to the page a user tried to visit before
 // logging in.
 func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
-    redirectSession, _ := a.cookiejar.Get(req, "redirects");
+    redirectSession, _ := a.cookiejar.Get(req, "redirects")
     defer redirectSession.Save(req, rw)
     redirectSession.Flashes()
     redirectSession.AddFlash(req.URL.Path)
@@ -79,7 +79,7 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
         return errors.New("already authenticated")
     }
     if user, ok := a.backend.User(u); ok {
-        verify := bcrypt.CompareHashAndPassword(user.Hash, []byte(u + p))
+        verify := bcrypt.CompareHashAndPassword(user.Hash, []byte(u+p))
         if verify != nil {
             a.addMessage(rw, req, "Invalid username or password.")
             return errors.New("password doesn't match")
@@ -107,7 +107,7 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string
         return errors.New("user already exists")
     }
 
-    hash, err := bcrypt.GenerateFromPassword([]byte(u + p), 8)
+    hash, err := bcrypt.GenerateFromPassword([]byte(u+p), 8)
     if err != nil {
         return errors.New("couldn't save password: " + err.Error())
     }
@@ -124,7 +124,7 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string
 // Update changes data for an existing user. Needs thought...
 func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, e string) error {
     var (
-        hash []byte
+        hash  []byte
         email string
     )
     authSession, err := a.cookiejar.Get(req, "auth")
@@ -138,7 +138,7 @@ func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, 
         return errors.New("user doesn't exists")
     }
     if p != "" {
-        hash, err = bcrypt.GenerateFromPassword([]byte(username + p), 8)
+        hash, err = bcrypt.GenerateFromPassword([]byte(username+p), 8)
         if err != nil {
             return errors.New("couldn't save password: " + err.Error())
         }

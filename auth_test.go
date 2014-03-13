@@ -1,18 +1,18 @@
 package httpauth
 
 import (
-    "testing"
-    "os"
     "net/http"
     "net/http/httptest"
+    "os"
+    "testing"
     "time"
 )
 
 var (
-    b GobFileAuthBackend
-    a Authorizer
-    file = "auth_test.gob"
-    c http.Client
+    b          GobFileAuthBackend
+    a          Authorizer
+    file       = "auth_test.gob"
+    c          http.Client
     authCookie http.Cookie
 )
 
@@ -22,11 +22,11 @@ func init() {
     a = NewAuthorizer(b, []byte("secret-key"))
     t, _ := time.Parse("Mon, 02 Jan 2006 15:04:05 MST", "Mon, 07 Apr 2014 21:47:54 UTC")
     authCookie = http.Cookie{
-        Name:"auth",
-        Value:"MTM5NDMxNTI3NHxEdi1GQkFFQ180WUFBUkFCRUFBQUt2LUdBQUVHYzNSeWFXNW5EQW9BQ0hWelpYSnVZVzFsQm5OMGNtbHVad3dLQUFoMWMyVnlibUZ0WlE9PXxR5vqFijkMnXg5SNpymM0LhaNRdlA97bBarGb_S4ghGQ==",
-        Path:"/",
+        Name:    "auth",
+        Value:   "MTM5NDMxNTI3NHxEdi1GQkFFQ180WUFBUkFCRUFBQUt2LUdBQUVHYzNSeWFXNW5EQW9BQ0hWelpYSnVZVzFsQm5OMGNtbHVad3dLQUFoMWMyVnlibUZ0WlE9PXxR5vqFijkMnXg5SNpymM0LhaNRdlA97bBarGb_S4ghGQ==",
+        Path:    "/",
         Expires: t,
-        MaxAge:2592000}
+        MaxAge:  2592000}
 }
 
 func TestNewAuthorizer(t *testing.T) {
@@ -125,5 +125,3 @@ func TestDeleteUser(t *testing.T) {
         t.Fatalf("DeleteUser error: %v", err)
     }
 }
-
-

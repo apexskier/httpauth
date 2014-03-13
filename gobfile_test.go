@@ -1,9 +1,9 @@
 package httpauth
 
 import (
-    "testing"
-    "os"
     "bytes"
+    "os"
+    "testing"
 )
 
 func init() {

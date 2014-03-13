@@ -2,14 +2,14 @@ package httpauth
 
 import (
     "encoding/gob"
-    "os"
     "errors"
+    "os"
 )
 
 // GobFileAuthBackend stores user data and the location of the gob file.
 type GobFileAuthBackend struct {
     filepath string
-    users map[string]UserData
+    users    map[string]UserData
 }
 
 // NewGobFileAuthBackend initializes a new backend by loading a map of users

@@ -1,15 +1,15 @@
 package httpauth
 
 import (
-    "testing"
-    "os"
     "bytes"
     "database/sql"
     _ "github.com/go-sql-driver/mysql"
+    "os"
+    "testing"
 )
 
 var (
-    sb SqlAuthBackend
+    sb         SqlAuthBackend
     driverName string = "mysql"
     driverInfo string = "testuser:TestPasswd9@tcp(localhost:3306)/test"
 )

@@ -6,7 +6,7 @@ import (
 
 // SqlAuthBackend database and database connection information.
 type SqlAuthBackend struct {
-    driverName string
+    driverName     string
     dataSourceName string
 }
 
@@ -45,7 +45,7 @@ func (b SqlAuthBackend) User(username string) (user UserData, ok bool) {
     row := con.QueryRow(`select Email, Hash from goauth where Username=?`, username)
     var (
         email string
-        hash []byte
+        hash  []byte
     )
     err := row.Scan(&email, &hash)
     if err != nil {
@@ -62,14 +62,18 @@ func (b SqlAuthBackend) Users() (us []UserData) {
     con := b.connect()
     defer con.Close()
     rows, err := con.Query("select Username, Email, Hash from goauth")
-    if err != nil { panic(err) }
+    if err != nil {
+        panic(err)
+    }
     var (
         username, email string
-        hash []byte
+        hash            []byte
     )
     for rows.Next() {
         err = rows.Scan(&username, &email, &hash)
-        if err != nil { panic(err) }
+        if err != nil {
+            panic(err)
+        }
         us = append(us, UserData{username, email, hash})
     }
     return
