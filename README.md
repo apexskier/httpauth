@@ -9,7 +9,7 @@ Multiple user data storage backends are available, and new ones can be
 implemented relatively easily.
 
 - [File based](https://godoc.org/github.com/apexskier/goauth#NewGobFileAuthBackend) ([gob](http://golang.org/pkg/encoding/gob/))
-- [Various SQL Databases](https://godoc.org/github.com/apexskier/goauth#NewSqlAuthBackend)
+- [Various SQL Databases](https://godoc.org/github.com/apexskier/httpauth#NewSqlAuthBackend)
 
 Using [bcrypt](http://codahale.com/how-to-safely-store-a-password/) for
 password hashing.
