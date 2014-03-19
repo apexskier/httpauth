@@ -54,7 +54,7 @@ func TestRegister(t *testing.T) {
         t.Fatalf("Register: error %v", err)
     }
 
-    newUser2 := UserData{Username:"username", Email:"email@example.com"}
+    newUser2 := UserData{Username:"username", Email:"email@example.com", Role: "admin"}
     err = a.Register(rw, req, newUser2, "password")
     if rw.Code != http.StatusOK {
         t.Fatalf("Register: Wrong status code: %v", rw.Code)
@@ -108,16 +108,44 @@ func TestAuthorize(t *testing.T) {
     a.Login(rw, req, "username", "password", "/redirect")
 
     req.AddCookie(&authCookie)
-    if err := a.Authorize(rw, req, true); err == nil || err.Error() != "no session existed" {
+    /*if err := a.Authorize(rw, req, true); err == nil || err.Error() != "no session existed" {
         t.Fatalf("Authorization: didn't catch new cookie")
-    }
+    }*/
     req, _ = http.NewRequest("GET", "/", nil)
     if err := a.Login(rw, req, "username", "password", "/redirect"); err != nil {
         t.Fatalf("Authorization login error: %v", err)
     }
     req.AddCookie(&authCookie)
     if err := a.Authorize(rw, req, true); err != nil {
-        //t.Fatalf("Authorization error: %v", err) // Should work
+        t.Fatalf("Authorization error: %v", err) // Should work
+    }
+}
+
+func TestAuthorizeRole(t *testing.T) {
+    rw := httptest.NewRecorder()
+    req, _ := http.NewRequest("GET", "/", nil)
+    if err := a.AuthorizeRole(rw, req, "user", true); err == nil {
+        t.Fatal("AuthorizeRole: no error on non authorized request")
+    }
+    a.Login(rw, req, "username", "password", "/redirect")
+
+    req.AddCookie(&authCookie)
+    /*if err := a.AuthorizeRole(rw, req, 20, true); err == nil || err.Error() != "no session existed" {
+        t.Fatalf("Authorization: didn't catch new cookie")
+    }*/
+    req, _ = http.NewRequest("GET", "/", nil)
+    if err := a.Login(rw, req, "username", "password", "/redirect"); err != nil {
+        t.Fatalf("Authorization login error: %v", err)
+    }
+    req.AddCookie(&authCookie)
+    if err := a.AuthorizeRole(rw, req, "blah", true); err == nil {
+        t.Fatalf("AuthorizeRole error: Didn't fail on invalid role")
+    }
+    if err := a.AuthorizeRole(rw, req, "user", true); err != nil {
+        t.Fatalf("AuthorizeRole error: %v", err) // Should work
+    }
+    if err := a.AuthorizeRole(rw, req, "admin", true); err == nil {
+        t.Fatalf("AuthorizeRole error: didn't restrict lower role user", err) // Should work
     }
 }
 

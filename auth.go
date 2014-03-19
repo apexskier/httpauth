@@ -204,13 +204,13 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
         }
         return errors.New("new authorization session")
     }
-    if authSession.IsNew {
+    /*if authSession.IsNew {
         if redirectWithMessage {
             a.goBack(rw, req)
             a.addMessage(rw, req, "Log in to do that.")
         }
         return errors.New("no session existed")
-    }
+    }*/
     username := authSession.Values["username"]
     if !authSession.IsNew && username != nil {
         if _, ok := a.backend.User(username.(string)); !ok {
@@ -233,14 +233,18 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
     return nil
 }
 
-func AuthorizeRole(rw http.ResponseWriter, req *http.Request, role Role, redirectWithMessage bool) error {
+func (a Authorizer) AuthorizeRole(rw http.ResponseWriter, req *http.Request, role string, redirectWithMessage bool) error {
+    r, ok := a.roles[role]
+    if !ok {
+        return errors.New("role not found")
+    }
     if err := a.Authorize(rw, req, redirectWithMessage); err != nil {
         return err
     }
     authSession, _ := a.cookiejar.Get(req, "auth") // should I check err? I've already checked in call to Authorize
     username := authSession.Values["username"]
     if user, ok := a.backend.User(username.(string)); ok {
-        if a.roles[user.Role] >= role {
+        if a.roles[user.Role] >= r {
             return nil
         } else {
             a.addMessage(rw, req, "You don't have sufficient privileges.")
