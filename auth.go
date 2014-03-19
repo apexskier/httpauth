@@ -22,10 +22,6 @@ import (
     "net/http"
 )
 
-// Role represents an interal role: a string mapped to an integer. Roles must
-// be greater than zero.
-type Role int
-
 // UserData represents a single user. It contains the users username and email
 // as well as a has of their username and password.
 type UserData struct {
@@ -51,6 +47,10 @@ type AuthBackend interface {
     User(username string) (user UserData, ok bool)
     Users() (users []UserData)
     DeleteUser(username string) error
+    SaveRole(name string, role Role) error
+    Role(name string) (Role, ok bool)
+    Roles() (roles map[string]Role)
+    DeleteRole(name string) error
 }
 
 // Helper function to add a user directed message to a message queue.
