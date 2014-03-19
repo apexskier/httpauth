@@ -161,7 +161,7 @@ func TestUpdateUser_sql(t *testing.T) {
 }
 
 func TestSqlDeleteUser_sql(t *testing.T) {
-    /*if err := sb.DeleteUser("username"); err != nil {
+    if err := sb.DeleteUser("username"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
     if err := sb.DeleteUser("username"); err != nil {
@@ -170,5 +170,5 @@ func TestSqlDeleteUser_sql(t *testing.T) {
 
     if err := sb.DeleteUser("username2"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
-    }*/
+    }
 }
