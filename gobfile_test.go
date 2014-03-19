@@ -21,10 +21,10 @@ func TestNewGobFileAuthBackend(t *testing.T) {
 }
 
 func TestSaveUser(t *testing.T) {
-    user := UserData{Username:"username", Email:"email", Hash:[]byte("passwordhash")}
+    user := UserData{Username:"username", Email:"email", Hash:[]byte("passwordhash"), Role:"user"}
     b.SaveUser(user)
 
-    user2 := UserData{Username:"username2", Email:"email2", Hash:[]byte("passwordhash2")}
+    user2 := UserData{Username:"username2", Email:"email2", Hash:[]byte("passwordhash2"), Role:"user"}
     b.SaveUser(user2)
 
     if len(b.users) != 2 {
@@ -35,6 +35,9 @@ func TestSaveUser(t *testing.T) {
     }
     if b.users["username"].Email != "email" {
         t.Fatal("User email not correct.")
+    }
+    if b.users["username"].Role != "user" {
+        t.Fatal("User role not correct.")
     }
     if !bytes.Equal(b.users["username"].Hash, []byte("passwordhash")) {
         t.Fatal("User password not correct.")
@@ -84,6 +87,9 @@ func TestUser_existing(t *testing.T) {
         if user.Email != "email" {
             t.Fatal("User email not correct.")
         }
+        if user.Role != "user" {
+            t.Fatal("user role not correct")
+        }
         if !bytes.Equal(user.Hash, []byte("passwordhash")) {
             t.Fatal("User password not correct.")
         }
@@ -126,6 +132,9 @@ func TestUsers(t *testing.T) {
     if !bytes.Equal(u1.Hash, []byte("passwordhash")) {
         t.Fatal("User password not correct.")
     }
+    if u1.Role != "user" {
+        t.Fatal("User role not correct")
+    }
     if u2.Username != "username2" {
         t.Fatal("Username not correct.")
     }
@@ -138,7 +147,7 @@ func TestUsers(t *testing.T) {
 }
 
 func TestUpdateUser_gob(t *testing.T) {
-    user2 := UserData{Username:"username", Email:"email", Hash:[]byte("newpassword")}
+    user2 := UserData{Username:"username", Email:"email", Hash:[]byte("newpassword"), Role:"newrole"}
     if err := b.SaveUser(user2); err != nil {
         t.Fatalf("SaveUser gob error: %v", err)
     }
@@ -151,6 +160,9 @@ func TestUpdateUser_gob(t *testing.T) {
     }
     if u2.Email != "email" {
         t.Fatal("User email not correct.")
+    }
+    if u2.Role != "newrole" {
+        t.Fatal("user role not correct")
     }
     if !bytes.Equal(u2.Hash, []byte("newpassword")) {
         t.Fatalf("User password not correct. Got %v, expected %v", u2.Hash, []byte("newpassword"))

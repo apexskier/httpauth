@@ -34,7 +34,7 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend) {
     b.dataSourceName = dataSourceName
     con := b.connect()
     defer con.Close()
-    con.Exec(`create table if not exists goauth (Username varchar(255), Email varchar(255), Hash varchar(255), primary key (Username))`)
+    con.Exec(`create table if not exists goauth (Username varchar(255), Email varchar(255), Hash varchar(255), Role varchar(255), primary key (Username))`)
     return b
 }
 
@@ -42,18 +42,12 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend) {
 func (b SqlAuthBackend) User(username string) (user UserData, ok bool) {
     con := b.connect()
     defer con.Close()
-    row := con.QueryRow(`select Email, Hash from goauth where Username=?`, username)
-    var (
-        email string
-        hash  []byte
-    )
-    err := row.Scan(&email, &hash)
+    row := con.QueryRow(`select Email, Hash, Role from goauth where Username=?`, username)
+    err := row.Scan(&user.Email, &user.Hash, &user.Role)
     if err != nil {
         return user, false
     }
     user.Username = username
-    user.Email = email
-    user.Hash = hash
     return user, true
 }
 
@@ -61,20 +55,20 @@ func (b SqlAuthBackend) User(username string) (user UserData, ok bool) {
 func (b SqlAuthBackend) Users() (us []UserData) {
     con := b.connect()
     defer con.Close()
-    rows, err := con.Query("select Username, Email, Hash from goauth")
+    rows, err := con.Query("select Username, Email, Hash, Role from goauth")
     if err != nil {
         panic(err)
     }
     var (
-        username, email string
-        hash            []byte
+        username, email, role string
+        hash                  []byte
     )
     for rows.Next() {
-        err = rows.Scan(&username, &email, &hash)
+        err = rows.Scan(&username, &email, &hash, &role)
         if err != nil {
             panic(err)
         }
-        us = append(us, UserData{username, email, hash})
+        us = append(us, UserData{username, email, hash, role})
     }
     return
 }
@@ -84,9 +78,9 @@ func (b SqlAuthBackend) SaveUser(user UserData) (err error) {
     con := b.connect()
     defer con.Close()
     if _, ok := b.User(user.Username); !ok {
-        _, err = con.Exec("insert into goauth (Username, Email, Hash) values (?, ?, ?)", user.Username, user.Email, user.Hash)
+        _, err = con.Exec("insert into goauth (Username, Email, Hash, Role) values (?, ?, ?, ?)", user.Username, user.Email, user.Hash, user.Role)
     } else {
-        _, err = con.Exec("update goauth set Email=?, Hash=? where Username=?", user.Email, user.Hash, user.Username)
+        _, err = con.Exec("update goauth set Email=?, Hash=?, Role=? where Username=?", user.Email, user.Hash, user.Role, user.Username)
     }
     return
 }

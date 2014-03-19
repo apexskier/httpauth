@@ -233,6 +233,8 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
     return nil
 }
 
+// AuthorizeRole runs Authorize on a user, then makes sure their role is at
+// least as high as the specified one, failing if not.
 func (a Authorizer) AuthorizeRole(rw http.ResponseWriter, req *http.Request, role string, redirectWithMessage bool) error {
     r, ok := a.roles[role]
     if !ok {
