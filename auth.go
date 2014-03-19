@@ -233,6 +233,24 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
     return nil
 }
 
+func AuthorizeRole(rw http.ResponseWriter, req *http.Request, role Role, redirectWithMessage bool) error {
+    if err := a.Authorize(rw, req, redirectWithMessage); err != nil {
+        return err
+    }
+    authSession, _ := a.cookiejar.Get(req, "auth") // should I check err? I've already checked in call to Authorize
+    username := authSession.Values["username"]
+    if user, ok := a.backend.User(username.(string)); ok {
+        if a.roles[user.Role] >= role {
+            return nil
+        } else {
+            a.addMessage(rw, req, "You don't have sufficient privileges.")
+            return errors.New("user doesn't have high enough role")
+        }
+    } else {
+        return errors.New("user not found")
+    }
+}
+
 // CurrentUser returns the currently logged in user and a boolean validating
 // the information.
 func (a Authorizer) CurrentUser(rw http.ResponseWriter, req *http.Request) (user UserData, ok bool) {
