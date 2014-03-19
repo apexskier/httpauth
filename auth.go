@@ -22,19 +22,26 @@ import (
     "net/http"
 )
 
+// Role represents an interal role: a string mapped to an integer. Roles must
+// be greater than zero.
+type Role int
+
 // UserData represents a single user. It contains the users username and email
 // as well as a has of their username and password.
 type UserData struct {
     Username string
     Email    string
     Hash     []byte
+    Role     string
 }
 
 // Authorizer structures contain the store of user session cookies a reference
 // to a backend storage system.
 type Authorizer struct {
-    cookiejar *sessions.CookieStore
-    backend   AuthBackend
+    cookiejar   *sessions.CookieStore
+    backend     AuthBackend
+    defaultRole string
+    roles       map[string]Role
 }
 
 // The AuthBackend interface defines a set of methods an AuthBackend must
@@ -64,10 +71,16 @@ func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
 
 // NewAuthorizer returns a new Authorizer given an AuthBackend and a cookie
 // store key.  If the key changes, logged in users will need to reauthenticate.
-func NewAuthorizer(backend AuthBackend, key []byte) (a Authorizer) {
+func NewAuthorizer(backend AuthBackend, key []byte, defaultRole string, roles map[string]Role) (Authorizer, error) {
+    var a Authorizer
     a.cookiejar = sessions.NewCookieStore([]byte(key))
     a.backend = backend
-    return a
+    a.roles = roles
+    a.defaultRole = defaultRole
+    if _, ok := roles[defaultRole]; !ok {
+        return a, errors.New("defaultRole not found in roles")
+    }
+    return a, nil
 }
 
 // Login logs a user in. They will be redirected to dest or to the last
@@ -101,24 +114,42 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 
 // Register and save a new user. Returns an error and adds a message if the
 // username is in use.
-func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
-    if _, ok := a.backend.User(u); ok {
+func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user UserData, password string) error {
+    if user.Username == "" {
+        return errors.New("no username given")
+    }
+    if user.Email == "" {
+        return errors.New("no email given")
+    }
+    if user.Hash != nil {
+        return errors.New("hash will be overwritten")
+    }
+    if password == "" {
+        return errors.New("no password given")
+    }
+
+    // Validate username
+    if _, ok := a.backend.User(user.Username); ok {
         a.addMessage(rw, req, "Username has been taken.")
         return errors.New("user already exists")
     }
 
-    hash, err := bcrypt.GenerateFromPassword([]byte(u+p), 8)
+    // Generate and save hash
+    hash, err := bcrypt.GenerateFromPassword([]byte(user.Username+password), 8)
     if err != nil {
         return errors.New("couldn't save password: " + err.Error())
     }
+    user.Hash = hash
 
-    user := UserData{u, e, hash}
+    if user.Role == "" {
+        user.Role = a.defaultRole
+    }
 
     err = a.backend.SaveUser(user)
     if err != nil {
         a.addMessage(rw, req, err.Error())
     }
-    return nil
+    return err
 }
 
 // Update changes data for an existing user. Needs thought...
@@ -151,7 +182,7 @@ func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, 
         email = user.Email
     }
 
-    newuser := UserData{username, email, hash}
+    newuser := UserData{username, email, hash, user.Role}
 
     err = a.backend.SaveUser(newuser)
     if err != nil {

@@ -19,7 +19,10 @@ var (
 func init() {
     os.Remove(file)
     b = NewGobFileAuthBackend(file)
-    a = NewAuthorizer(b, []byte("secret-key"))
+    roles := make(map[string]Role)
+    roles["user"] = 40
+    roles["admin"] = 80
+    a, _ = NewAuthorizer(b, []byte("testkey"), "user", roles)
     t, _ := time.Parse("Mon, 02 Jan 2006 15:04:05 MST", "Mon, 07 Apr 2014 21:47:54 UTC")
     authCookie = http.Cookie{
         Name:    "auth",
@@ -30,13 +33,20 @@ func init() {
 }
 
 func TestNewAuthorizer(t *testing.T) {
-    a = NewAuthorizer(b, []byte("testkey"))
+    roles := make(map[string]Role)
+    roles["user"] = 40
+    roles["admin"] = 80
+    _, err := NewAuthorizer(b, []byte("testkey"), "user", roles)
+    if err != nil {
+        t.Fatalf(err.Error())
+    }
 }
 
 func TestRegister(t *testing.T) {
     rw := httptest.NewRecorder()
     req, _ := http.NewRequest("POST", "/", nil)
-    err := a.Register(rw, req, "username", "password", "email@example.com")
+    newUser := UserData{Username:"username", Email:"email@example.com"}
+    err := a.Register(rw, req, newUser, "password")
     if rw.Code != http.StatusOK {
         t.Fatalf("Register: Wrong status code: %v", rw.Code)
     }
@@ -44,7 +54,8 @@ func TestRegister(t *testing.T) {
         t.Fatalf("Register: error %v", err)
     }
 
-    err = a.Register(rw, req, "username", "password", "email@example.com")
+    newUser2 := UserData{Username:"username", Email:"email@example.com"}
+    err = a.Register(rw, req, newUser2, "password")
     if rw.Code != http.StatusOK {
         t.Fatalf("Register: Wrong status code: %v", rw.Code)
     }

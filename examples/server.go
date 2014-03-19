@@ -15,7 +15,10 @@ var (
 
 func main() {
     backend = httpauth.NewGobFileAuthBackend("auth.gob")
-    aaa = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"))
+    aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"))
+    if err != nil {
+        panic(err)
+    }
 
     // set up routers and route handlers
     r := mux.NewRouter()

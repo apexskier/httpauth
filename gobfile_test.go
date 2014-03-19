@@ -21,10 +21,10 @@ func TestNewGobFileAuthBackend(t *testing.T) {
 }
 
 func TestSaveUser(t *testing.T) {
-    user := UserData{"username", "email", []byte("passwordhash")}
+    user := UserData{Username:"username", Email:"email", Hash:[]byte("passwordhash")}
     b.SaveUser(user)
 
-    user2 := UserData{"username2", "email2", []byte("passwordhash2")}
+    user2 := UserData{Username:"username2", Email:"email2", Hash:[]byte("passwordhash2")}
     b.SaveUser(user2)
 
     if len(b.users) != 2 {
@@ -138,7 +138,7 @@ func TestUsers(t *testing.T) {
 }
 
 func TestUpdateUser_gob(t *testing.T) {
-    user2 := UserData{"username", "email", []byte("newpassword")}
+    user2 := UserData{Username:"username", Email:"email", Hash:[]byte("newpassword")}
     if err := b.SaveUser(user2); err != nil {
         t.Fatalf("SaveUser gob error: %v", err)
     }
@@ -153,7 +153,7 @@ func TestUpdateUser_gob(t *testing.T) {
         t.Fatal("User email not correct.")
     }
     if !bytes.Equal(u2.Hash, []byte("newpassword")) {
-        t.Fatal("User password not correct.")
+        t.Fatalf("User password not correct. Got %v, expected %v", u2.Hash, []byte("newpassword"))
     }
 }
 
