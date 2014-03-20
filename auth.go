@@ -6,6 +6,9 @@
 // Two user storage systems are currently implemented: file based (encoding/gob)
 // and sql databases (database/sql).
 //
+// Access can be restricted by a users' role. A higher role will give more
+// access.
+//
 // Users can be redirected to the page that triggered an authentication error.
 //
 // Messages describing the reason a user could not authenticate are saved in a
