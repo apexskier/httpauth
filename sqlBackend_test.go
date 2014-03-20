@@ -10,8 +10,8 @@ import (
 
 var (
     sb         SqlAuthBackend
-    driverName string = "mysql"
-    driverInfo string = "testuser:TestPasswd9@tcp(localhost:3306)/test"
+    driverName = "mysql"
+    driverInfo = "testuser:TestPasswd9@tcp(localhost:3306)/test"
 )
 
 func TestSqlInit(t *testing.T) {

@@ -185,7 +185,7 @@ func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, 
     authSession, err := a.cookiejar.Get(req, "auth")
     username, ok := authSession.Values["username"].(string)
     if !ok {
-        return errors.New("Not logged in")
+        return errors.New("not logged in")
     }
     user, ok := a.backend.User(username)
     if !ok {
@@ -272,13 +272,11 @@ func (a Authorizer) AuthorizeRole(rw http.ResponseWriter, req *http.Request, rol
     if user, ok := a.backend.User(username.(string)); ok {
         if a.roles[user.Role] >= r {
             return nil
-        } else {
-            a.addMessage(rw, req, "You don't have sufficient privileges.")
-            return errors.New("user doesn't have high enough role")
         }
-    } else {
-        return errors.New("user not found")
+        a.addMessage(rw, req, "You don't have sufficient privileges.")
+        return errors.New("user doesn't have high enough role")
     }
+    return errors.New("user not found")
 }
 
 // CurrentUser returns the currently logged in user and a boolean validating
