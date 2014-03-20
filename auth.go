@@ -22,12 +22,14 @@ import (
     "net/http"
 )
 
-// Role represents an interal role: a string mapped to an integer. Roles must
-// be greater than zero.
+// Role represents an interal role. Roles are essentially a string mapped to an
+// integer. Roles must be greater than zero.
 type Role int
 
-// UserData represents a single user. It contains the users username and email
-// as well as a has of their username and password.
+// UserData represents a single user. It contains the users username, email,
+// and role as well as a hash of their username and password. When creating
+// users, you should not specify a hash; it will be generated in the Register
+// and Update functions.
 type UserData struct {
     Username string
     Email    string
@@ -69,8 +71,19 @@ func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
     redirectSession.AddFlash(req.URL.Path)
 }
 
-// NewAuthorizer returns a new Authorizer given an AuthBackend and a cookie
-// store key.  If the key changes, logged in users will need to reauthenticate.
+// NewAuthorizer returns a new Authorizer given an AuthBackend, a cookie store
+// key, a default user role, and a map of roles. If the key changes, logged in
+// users will need to reauthenticate.
+//
+// Roles are a map of string to httpauth.Role values (integers). Higher Role values
+// have more access.
+//
+// Example roles:
+//
+//     var roles map[string]httpauth.Role
+//     roles["user"] = 2
+//     roles["admin"] = 4
+//     roles["moderator"] = 3
 func NewAuthorizer(backend AuthBackend, key []byte, defaultRole string, roles map[string]Role) (Authorizer, error) {
     var a Authorizer
     a.cookiejar = sessions.NewCookieStore([]byte(key))
@@ -114,6 +127,9 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 
 // Register and save a new user. Returns an error and adds a message if the
 // username is in use.
+//
+// Pass in a instance of UserData with at least a username and email specified. If no role
+// is given, the default one is used.
 func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user UserData, password string) error {
     if user.Username == "" {
         return errors.New("no username given")
@@ -141,8 +157,13 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user Use
     }
     user.Hash = hash
 
+    // Validate role
     if user.Role == "" {
         user.Role = a.defaultRole
+    } else {
+        if _, ok := a.roles[user.Role]; !ok {
+            return errors.New("non-existant role")
+        }
     }
 
     err = a.backend.SaveUser(user)
