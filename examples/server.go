@@ -4,27 +4,36 @@ import (
     "net/http"
     "github.com/apexskier/httpauth"
     "github.com/gorilla/mux"
+    "html/template"
     "fmt"
 )
 
 var (
     backend httpauth.GobFileAuthBackend
     aaa httpauth.Authorizer
+    roles map[string]httpauth.Role
 )
 
 
 func main() {
+    var err error
     backend = httpauth.NewGobFileAuthBackend("auth.gob")
-    aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"))
+    roles = make(map[string]httpauth.Role)
+    roles["user"] = 30
+    roles["admin"] = 80
+    aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "user", roles)
     if err != nil {
         panic(err)
     }
+
 
     // set up routers and route handlers
     r := mux.NewRouter()
     r.HandleFunc("/login", getLogin).Methods("GET")
     r.HandleFunc("/register", postRegister).Methods("POST")
     r.HandleFunc("/login", postLogin).Methods("POST")
+    r.HandleFunc("/admin", handleAdmin).Methods("GET")
+    r.HandleFunc("/add_user", postAddUser).Methods("POST")
     r.HandleFunc("/change", postChange).Methods("POST")
     r.HandleFunc("/", handlePage).Methods("GET") // authorized page
     r.HandleFunc("/logout", handleLogout)
@@ -63,21 +72,37 @@ func getLogin(rw http.ResponseWriter, req *http.Request) {
 func postLogin(rw http.ResponseWriter, req *http.Request) {
     username := req.PostFormValue("username")
     password := req.PostFormValue("password")
-    if err := aaa.Login(rw, req, username, password, "/"); err != nil {
+    if err := aaa.Login(rw, req, username, password, "/"); err != nil && err.Error() == "already authenticated" {
+        http.Redirect(rw, req, "/", http.StatusSeeOther)
+    } else if err != nil {
         fmt.Println(err)
         http.Redirect(rw, req, "/login", http.StatusSeeOther)
     }
 }
 
 func postRegister(rw http.ResponseWriter, req *http.Request) {
-    username := req.PostFormValue("username")
+    var user httpauth.UserData
+    user.Username = req.PostFormValue("username")
+    user.Email = req.PostFormValue("email")
     password := req.PostFormValue("password")
-    email := req.PostFormValue("email")
-    if err := aaa.Register(rw, req, username, password, email); err == nil {
+    if err := aaa.Register(rw, req, user, password); err == nil {
         postLogin(rw, req)
     } else {
         http.Redirect(rw, req, "/login", http.StatusSeeOther)
     }
+}
+
+func postAddUser(rw http.ResponseWriter, req *http.Request) {
+    var user httpauth.UserData
+    user.Username = req.PostFormValue("username")
+    user.Email = req.PostFormValue("email")
+    password := req.PostFormValue("password")
+    user.Role = req.PostFormValue("role")
+    if err := aaa.Register(rw, req, user, password); err != nil {
+        // maybe something
+    }
+
+    http.Redirect(rw, req, "/admin", http.StatusSeeOther)
 }
 
 func postChange(rw http.ResponseWriter, req *http.Request) {
@@ -93,20 +118,77 @@ func handlePage(rw http.ResponseWriter, req *http.Request) {
         return
     }
     if user, ok := aaa.CurrentUser(rw, req); ok {
-        fmt.Fprintf(rw, `
+        type data struct {
+            User httpauth.UserData
+        }
+        d := data{User:user}
+        t, err := template.New("page").Parse(`
             <html>
             <head><title>Secret page</title></head>
             <body>
                 <h1>Httpauth example<h1>
-                <h2>Hello %v</h2>
-                <p>Your email is %v. <a href="/logout">Logout</a></p>
+                {{ with .User }}
+                    <h2>Hello {{ .Username }}</h2>
+                    <p>Your role is '{{ .Role }}'. Your email is {{ .Email }}.</p>
+                    <p>{{ if .Role | eq "admin" }}<a href="/admin">Admin page</a> {{ end }}<a href="/logout">Logout</a></p>
+                {{ end }}
                 <form action="/change" method="post" id="change">
                     <h3>Change email</h3>
                     <p><input type="email" name="new_email" placeholder="new email"></p>
                     <button type="submit">Submit</button>
                 </form>
             </body>
-            `, user.Username, user.Email)
+            `)
+        if err != nil {
+            panic(err)
+        }
+        t.Execute(rw, d)
+    }
+}
+
+func handleAdmin(rw http.ResponseWriter, req *http.Request) {
+    if err := aaa.AuthorizeRole(rw, req, "admin", true); err != nil {
+        fmt.Println(err)
+        http.Redirect(rw, req, "/login", http.StatusSeeOther)
+        return
+    }
+    if user, ok := aaa.CurrentUser(rw, req); ok {
+        type data struct {
+            User httpauth.UserData
+            Roles map[string]httpauth.Role
+            Users []httpauth.UserData
+            Msg []string
+        }
+        messages := aaa.Messages(rw, req)
+        d := data{User:user, Roles:roles, Users:backend.Users(), Msg:messages}
+        t, err := template.New("admin").Parse(`
+            <html>
+            <head><title>Admin page</title></head>
+            <body>
+                <h1>Httpauth example<h1>
+                <h2>Admin Page</h2>
+                <p>{{.Msg}}</p>
+                {{ with .User }}<p>Hello {{ .Username }}, your role is '{{ .Role }}'. Your email is {{ .Email }}.</p>{{ end }}
+                <p><a href="/">Back</a> <a href="/logout">Logout</a></p>
+                <h3>Users</h3>
+                <ul>{{ range .Users }}<li>{{.Username}}</li>{{ end }}</ul>
+                <form action="/add_user" method="post" id="add_user">
+                    <h3>Add user</h3>
+                    <p><input type="text" name="username" placeholder="username"><br>
+                    <input type="password" name="password" placeholder="password"><br>
+                    <input type="email" name="email" placeholder="email"><br>
+                    <select name="role">
+                        <option value="">role<option>
+                        {{ range $key, $val := .Roles }}<option value="{{$key}}">{{$key}} - {{$val}}</option>{{ end }}
+                    </select></p>
+                    <button type="submit">Submit</button>
+                </form>
+            </body>
+            `)
+        if err != nil {
+            panic(err)
+        }
+        t.Execute(rw, d)
     }
 }
 
@@ -116,6 +198,6 @@ func handleLogout(rw http.ResponseWriter, req *http.Request) {
         // this shouldn't happen
         return
     }
-    http.Redirect(rw, req, "/logout", http.StatusSeeOther)
+    http.Redirect(rw, req, "/", http.StatusSeeOther)
 }
 
