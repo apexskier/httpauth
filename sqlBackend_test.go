@@ -3,6 +3,7 @@ package httpauth
 import (
     "bytes"
     "database/sql"
+    "fmt"
     _ "github.com/go-sql-driver/mysql"
     "os"
     "testing"
@@ -17,7 +18,15 @@ var (
 func TestSqlInit(t *testing.T) {
     con, err := sql.Open(driverName, driverInfo)
     if err != nil {
-        t.Fatalf("Couldn't set up test database: %v", err)
+        t.Errorf("Couldn't set up test database: %v", err)
+        fmt.Printf("Couldn't set up test database: %v\n", err)
+        os.Exit(1)
+    }
+    err = con.Ping()
+    if err != nil {
+        t.Errorf("Couldn't ping test database: %v", err)
+        fmt.Printf("Couldn't ping test database: %v\n", err)
+        // t.Errorf("Couldn't ping test database: %v\n", err)
         os.Exit(1)
     }
     con.Exec("drop table goauth")
