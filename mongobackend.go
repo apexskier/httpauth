@@ -1,4 +1,4 @@
-package httpauth-mgo
+package httpauth
 
 import (
     "errors"
