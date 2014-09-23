@@ -8,3 +8,7 @@ install:
     - go get github.com/gorilla/mux
     - go get github.com/gorilla/sessions
     - go get github.com/go-sql-driver/mysql
+
+.travis.yml
+before_script:
+    - mysql -e 'create database httpauth_test;'
