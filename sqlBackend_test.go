@@ -12,7 +12,7 @@ import (
 var (
     sb         SqlAuthBackend
     driverName = "mysql"
-    driverInfo = "travis@tcp(127.0.0.1:3306)/httpauth_test"
+    driverInfo = "travis@tcp(127.0.0.1:3306)/test"
 )
 
 func TestSqlInit(t *testing.T) {
