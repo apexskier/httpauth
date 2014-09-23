@@ -18,8 +18,8 @@ var (
 func TestMongodbInit(t *testing.T) {
     con, err := mgo.Dial(url)
     if err != nil {
-        t.Errorf("Couldn't set up test mongodb session: %v", err)
-        fmt.Printf("Couldn't set up test mongodb session: %v\n", err)
+        t.Errorf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```", err)
+        fmt.Printf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```\n", err)
         os.Exit(1)
     }
     err = con.Ping()
