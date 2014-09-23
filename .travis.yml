@@ -3,9 +3,6 @@ language: go
 go:
     - tip
 
-services:
-    - mysql
-
 install:
     - go get code.google.com/p/go.crypto/bcrypt
     - go get github.com/gorilla/mux
