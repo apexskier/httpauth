@@ -3,3 +3,4 @@ data
 auth
 usage
 auth_test.gob
+mongodbtest
