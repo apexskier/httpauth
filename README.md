@@ -1,4 +1,5 @@
 # Go Session Authentication
+[![Build Status](https://travis-ci.org/apexskier/httpauth.svg?branch=master)](https://travis-ci.org/apexskier/httpauth)
 [![GoDoc](https://godoc.org/github.com/apexskier/httpauth?status.png)](https://godoc.org/github.com/apexskier/httpauth)
 
 This package uses the [Gorilla web toolkit](http://www.gorillatoolkit.org/)'s
