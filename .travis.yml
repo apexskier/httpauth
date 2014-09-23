@@ -7,3 +7,4 @@ install:
     - go get code.google.com/p/go.crypto/bcrypt
     - go get github.com/gorilla/mux
     - go get github.com/gorilla/sessions
+    - go get github.com/go-sql-driver/mysql
