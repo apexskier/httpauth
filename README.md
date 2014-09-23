@@ -20,6 +20,10 @@ hashing.
 Run `go run server.go` from the examples directory and visit `localhost:8080`
 for an example. You can login with the username and password "admin".
 
+Tests can be run by simulating Travis CI's build environment. A mysql database
+must be running on the default port with a user "travis" with no password and a
+dabase "httpauth_test".
+
 **Note**
 
 This is the first time I've worked with implementing the details of cookie
