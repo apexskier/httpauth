@@ -34,10 +34,10 @@ type Role int
 // users, you should not specify a hash; it will be generated in the Register
 // and Update functions.
 type UserData struct {
-    Username string
-    Email    string
-    Hash     []byte
-    Role     string
+    Username string `bson:"Username"`
+    Email    string `bson:"Email"`
+    Hash     []byte `bson:"Hash"`
+    Role     string `bson:"Role"`
 }
 
 // Authorizer structures contain the store of user session cookies a reference
