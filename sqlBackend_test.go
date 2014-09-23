@@ -12,20 +12,20 @@ import (
 var (
     sb         SqlAuthBackend
     driverName = "mysql"
-    driverInfo = "testuser:TestPasswd9@tcp(localhost:3306)/test"
+    driverInfo = "travis@tcp(127.0.0.1:3306)/test"
 )
 
 func TestSqlInit(t *testing.T) {
     con, err := sql.Open(driverName, driverInfo)
     if err != nil {
-        t.Errorf("Couldn't set up test database: %v", err)
-        fmt.Printf("Couldn't set up test database: %v\n", err)
+        t.Errorf("Couldn't set up test sql database: %v", err)
+        fmt.Printf("Couldn't set up test sql database: %v\n", err)
         os.Exit(1)
     }
     err = con.Ping()
     if err != nil {
-        t.Errorf("Couldn't ping test database: %v", err)
-        fmt.Printf("Couldn't ping test database: %v\n", err)
+        t.Errorf("Couldn't ping test sql database: %v", err)
+        fmt.Printf("Couldn't ping test sql database: %v\n", err)
         // t.Errorf("Couldn't ping test database: %v\n", err)
         os.Exit(1)
     }
