@@ -8,17 +8,18 @@ import (
 )
 
 
-type udata struct {
-	Userame	string	`bson:"Username"`
-	Email  	string	`bson:"Email"`
-	Hash  	[]byte 	`bson:"Hash"`
-	Role 	string	`bson:"Role"`
-}
-
 // MongodbAuthBackend stores database connection information.
 type MongodbAuthBackend struct {
     mongoUrl string
     database string
+}
+
+func (b MongodbAuthBackend) connect() (c *mgo.Collection, err error) {
+    sesh, err := mgo.Dial(b.mongoUrl)
+    if err != nil {
+        return c, errors.New("Can't connect to mongodb: " + err.Error())
+    }
+    return sesh.DB(b.database).C("goauth"), nil
 }
 
 // NewMongodbAuthBackend initializes a new backend.
@@ -32,14 +33,6 @@ func NewMongodbBackend(mongoUrl string, database string) (b MongodbAuthBackend, 
     return b, nil
 }
 
-func (b MongodbAuthBackend) connect() (c *mgo.Collection, err error) {
-    sesh, err := mgo.Dial(b.mongoUrl)
-    if err != nil {
-        return c, errors.New("Can't connect to mongodb: " + err.Error())
-    }
-    return sesh.DB(b.database).C("goauth"), nil
-}
-
 // User returns the user with the given username.
 func (b MongodbAuthBackend) User(username string) (user UserData, ok bool) {
     c, err := b.connect()
@@ -50,8 +43,8 @@ func (b MongodbAuthBackend) User(username string) (user UserData, ok bool) {
 
     err = c.Find(bson.M{"Username": username}).One(&result)
     if err != nil {
-	fmt.Println("Cannot find specified user (" + username + ")")
-    	return result, false
+        fmt.Println("Cannot find specified user (" + username + ")")
+        return result, false
     }
     return result, true
 }
@@ -65,7 +58,7 @@ func (b MongodbAuthBackend) Users() (us []UserData) {
     var results []UserData
     err = c.Find(bson.M{}).All(&results)
     if err != nil {
-	fmt.Printf("got an error finding a doc %v\n")
+        fmt.Printf("got an error finding a doc %v\n")
     }
     return results
 }
