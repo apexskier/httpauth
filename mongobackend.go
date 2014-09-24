@@ -26,7 +26,8 @@ func (b MongodbAuthBackend) connect() (c *mgo.Collection, err error) {
 func NewMongodbBackend(mongoUrl string, database string) (b MongodbAuthBackend, err error) {
     b.mongoUrl = mongoUrl
     b.database = database
-    _, err = mgo.Dial(b.mongoUrl)
+    sesh, err := mgo.Dial(b.mongoUrl)
+    defer sesh.Close()
     if err != nil {
         return b, errors.New("Can't connect to mongodb: " + err.Error())
     }
@@ -43,7 +44,6 @@ func (b MongodbAuthBackend) User(username string) (user UserData, ok bool) {
 
     err = c.Find(bson.M{"Username": username}).One(&result)
     if err != nil {
-        fmt.Println("Cannot find specified user (" + username + ")")
         return result, false
     }
     return result, true
@@ -63,7 +63,7 @@ func (b MongodbAuthBackend) Users() (us []UserData) {
     return results
 }
 
-// SaveUser adds a new user, replacing one with the same username.
+// SaveUser adds a new user, replacing if the same username is in use.
 func (b MongodbAuthBackend) SaveUser(user UserData) error {
     c, err := b.connect()
     if err != nil {
@@ -83,7 +83,8 @@ func (b MongodbAuthBackend) SaveUser(user UserData) error {
     return err
 }
 
-// DeleteUser removes a user.
+// DeleteUser removes a user. An error is raised if the user isn't found.
+// TODO: Should that error be raised? (Different than sql)
 func (b MongodbAuthBackend) DeleteUser(username string) error {
     c, err := b.connect()
     if err != nil {
