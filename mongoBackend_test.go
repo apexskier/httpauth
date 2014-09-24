@@ -65,7 +65,7 @@ func TestSaveUser_mongodb(t *testing.T) {
 }
 
 func TestNewMongodbAuthBackend_existing(t *testing.T) {
-    b2, err := NewMongodbBackend(driverName, driverInfo)
+    b2, err := NewMongodbBackend(url, db)
     if err != nil {
         t.Fatalf("NewMongodbBackend (existing) error: %v", err)
     }
