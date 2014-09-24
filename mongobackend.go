@@ -70,7 +70,16 @@ func (b MongodbAuthBackend) SaveUser(user UserData) error {
         panic(err)
     }
     hash := string(user.Hash)
-    err = c.Insert(bson.M{ "Username": user.Username, "Hash": hash, "Email": user.Email, "Role": user.Role })
+    m := c.Find(bson.M{ "Username": user.Username })
+    l, err := m.Count()
+    if err != nil {
+        panic(err)
+    }
+    if (l == 0) {
+        err = c.Insert(bson.M{ "Username": user.Username, "Hash": hash, "Email": user.Email, "Role": user.Role })
+    } else {
+        err = c.Update(bson.M{ "Username": user.Username }, bson.M{ "Username": user.Username, "Hash": hash, "Email": user.Email, "Role": user.Role })
+    }
     return err
 }
 
