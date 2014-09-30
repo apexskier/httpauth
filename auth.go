@@ -25,6 +25,10 @@ import (
     "net/http"
 )
 
+var (
+    ErrDeleteNull = errors.New("deleting non-existant user")
+)
+
 // Role represents an interal role. Roles are essentially a string mapped to an
 // integer. Roles must be greater than zero.
 type Role int

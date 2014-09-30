@@ -90,7 +90,11 @@ func (b MongodbAuthBackend) DeleteUser(username string) error {
     c := b.connect()
     defer c.Database.Session.Close()
 
+    // raises error if "username" doesn't exist
     err := c.Remove(bson.M{"Username": username})
+    if err == mgo.ErrNotFound {
+        return ErrDeleteNull
+    }
     return err
 }
 
