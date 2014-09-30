@@ -78,7 +78,17 @@ func (b SqlAuthBackend) SaveUser(user UserData) (err error) {
 // DeleteUser removes a user.
 // If the user doesn't exist, silently stops.
 func (b SqlAuthBackend) DeleteUser(username string) error {
-    _, err := b.db.Exec("delete from goauth where Username=?", username)
+    result, err := b.db.Exec("delete from goauth where Username=?", username)
+    if err != nil {
+        return err
+    }
+    rows, err := result.RowsAffected()
+    if err != nil {
+        return err
+    }
+    if rows == 0 {
+        return ErrDeleteNull
+    }
     return err
 }
 
