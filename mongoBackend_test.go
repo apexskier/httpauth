@@ -187,6 +187,12 @@ func TestMongodbDeleteUser_mongodb(t *testing.T) {
     if err := backend.DeleteUser("username"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
+    err := backend.DeleteUser("username")
+    if err == nil {
+        t.Fatalf("DeleteUser should have raised error")
+    } else if err != ErrDeleteNull {
+        t.Fatalf("DeleteUser raised unexpected error: %v", err)
+    }
 
     if err := backend.DeleteUser("username2"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
