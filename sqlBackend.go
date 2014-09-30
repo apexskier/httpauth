@@ -90,6 +90,16 @@ func (b SqlAuthBackend) SaveUser(user UserData) (err error) {
 func (b SqlAuthBackend) DeleteUser(username string) error {
     con := b.connect()
     defer con.Close()
-    _, err := con.Exec("delete from goauth where Username=?", username)
+    result, err := con.Exec("delete from goauth where Username=?", username)
+    if err != nil {
+        return err
+    }
+    rows, err := result.RowsAffected()
+    if err != nil {
+        return err
+    }
+    if rows == 0 {
+        return ErrDeleteNull
+    }
     return err
 }

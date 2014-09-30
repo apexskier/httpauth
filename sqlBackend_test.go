@@ -173,8 +173,11 @@ func TestSqlDeleteUser_sql(t *testing.T) {
     if err := sb.DeleteUser("username"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
-    if err := sb.DeleteUser("username"); err != nil {
-        t.Fatalf("DeleteUser error: %v", err)
+    err := sb.DeleteUser("username")
+    if err == nil {
+        t.Fatalf("DeleteUser should have raised error")
+    } else if err != ErrDeleteNull {
+        t.Fatalf("DeleteUser raised unexpected error: %v", err)
     }
 
     if err := sb.DeleteUser("username2"); err != nil {
