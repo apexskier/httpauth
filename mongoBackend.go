@@ -95,5 +95,7 @@ func (b MongodbAuthBackend) DeleteUser(username string) error {
 }
 
 func (b MongodbAuthBackend) Close() {
-    b.session.Close()
+    if b.session != nil {
+        b.session.Close()
+    }
 }
