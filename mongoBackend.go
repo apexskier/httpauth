@@ -97,6 +97,8 @@ func (b MongodbAuthBackend) DeleteUser(username string) error {
     return err
 }
 
+// Close cleans up the backend once done with. This should be called before
+// program exit.
 func (b MongodbAuthBackend) Close() {
     if b.session != nil {
         b.session.Close()
