@@ -20,10 +20,25 @@ func (b MongodbAuthBackend) connect() *mgo.Collection {
 }
 
 // NewMongodbAuthBackend initializes a new backend.
+// Be sure to call Close() on this to clean up the mongodb connection.
+// Example:
+//     backend = httpauth.MongodbAuthBackend("mongodb://127.0.0.1/", "auth")
+//     defer backend.Close()
 func NewMongodbBackend(mongoUrl string, database string) (b MongodbAuthBackend) {
+    // Set up connection to database
     b.mongoUrl = mongoUrl
     b.database = database
     session, err := mgo.Dial(b.mongoUrl)
+    if err != nil {
+        panic(err)
+    }
+
+    // Ensure that the Username field is unique
+    index := mgo.Index{
+        Key: []string{"Username"},
+        Unique: true,
+    }
+    err = session.DB(b.database).C("goauth").EnsureIndex(index)
     if err != nil {
         panic(err)
     }
