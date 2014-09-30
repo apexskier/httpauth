@@ -10,13 +10,14 @@ import (
 )
 
 var (
-    backend         MongodbAuthBackend
-    url = "mongodb://127.0.0.1/"
-    db = "test"
+    backend   MongodbAuthBackend
+    url     = "mongodb://127.0.0.1/"
+    db      = "test"
 )
 
 func TestMongodbInit(t *testing.T) {
     con, err := mgo.Dial(url)
+    defer con.Close()
     if err != nil {
         t.Errorf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```", err)
         fmt.Printf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```\n", err)
@@ -29,8 +30,8 @@ func TestMongodbInit(t *testing.T) {
         // t.Errorf("Couldn't ping test database: %v\n", err)
         os.Exit(1)
     }
-    db := con.DB(db)
-    err = db.DropDatabase()
+    database := con.DB(db)
+    err = database.DropDatabase()
     if err != nil {
         t.Errorf("Couldn't drop test mongodb database: %v", err)
         fmt.Printf("Couldn't drop test mongodb database: %v\n", err)
@@ -40,10 +41,10 @@ func TestMongodbInit(t *testing.T) {
 }
 
 func TestNewMongodbAuthBackend(t *testing.T) {
-    backend, err := NewMongodbBackend(url, db)
-    if err != nil {
-        t.Fatalf("NewMongodbBackend error: %v", err)
-    }
+    backend = NewMongodbBackend(url, db)
+    //if err != nil {
+    //    t.Fatalf("NewMongodbBackend error: %v", err)
+    //}
     if backend.mongoUrl != url {
         t.Fatal("Url name.")
     }
@@ -65,10 +66,10 @@ func TestSaveUser_mongodb(t *testing.T) {
 }
 
 func TestNewMongodbAuthBackend_existing(t *testing.T) {
-    b2, err := NewMongodbBackend(url, db)
-    if err != nil {
-        t.Fatalf("NewMongodbBackend (existing) error: %v", err)
-    }
+    b2 := NewMongodbBackend(url, db)
+    //if err != nil {
+    //    t.Fatalf("NewMongodbBackend (existing) error: %v", err)
+    //}
 
     user, ok := b2.User("username")
     if !ok {
