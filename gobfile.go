@@ -68,7 +68,7 @@ func (b GobFileAuthBackend) save() error {
     return err
 }
 
-// DeleteUser removes a user.
+// DeleteUser removes a user, raising ErrDeleteNull if that user was missing.
 func (b GobFileAuthBackend) DeleteUser(username string) error {
     if _, ok := b.User(username); !ok {
         return ErrDeleteNull

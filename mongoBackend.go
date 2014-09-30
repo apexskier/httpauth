@@ -84,8 +84,7 @@ func (b MongodbAuthBackend) SaveUser(user UserData) error {
     return err
 }
 
-// DeleteUser removes a user. An error is raised if the user isn't found.
-// TODO: Should that error be raised? (Different than sql)
+// DeleteUser removes a user. ErrNotFound is returned if the user isn't found.
 func (b MongodbAuthBackend) DeleteUser(username string) error {
     c := b.connect()
     defer c.Database.Session.Close()
