@@ -176,7 +176,10 @@ func TestGobDeleteUser(t *testing.T) {
     if _, ok := b.User("username"); ok {
         t.Fatalf("DeleteUser: User not deleted")
     }
-    if err := b.DeleteUser("username"); err != nil {
-        t.Fatalf("DeleteUser error: %v", err)
+    err := b.DeleteUser("username")
+    if err == nil {
+        t.Fatalf("DeleteUser should have raised error")
+    } else if err != ErrDeleteNull {
+        t.Fatalf("DeleteUser raised unexpected error: %v", err)
     }
 }
