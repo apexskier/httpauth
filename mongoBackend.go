@@ -65,17 +65,7 @@ func (b MongodbAuthBackend) SaveUser(user UserData) error {
     c := b.connect()
     defer c.Database.Session.Close()
 
-    hash := string(user.Hash)
-    m := c.Find(bson.M{ "Username": user.Username })
-    l, err := m.Count()
-    if err != nil {
-        panic(err)
-    }
-    if (l == 0) {
-        err = c.Insert(bson.M{ "Username": user.Username, "Hash": hash, "Email": user.Email, "Role": user.Role })
-    } else {
-        err = c.Update(bson.M{ "Username": user.Username }, bson.M{ "Username": user.Username, "Hash": hash, "Email": user.Email, "Role": user.Role })
-    }
+    _, err := c.Upsert(bson.M{ "Username": user.Username }, bson.M{ "$set": user })
     return err
 }
 
