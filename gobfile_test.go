@@ -180,3 +180,7 @@ func TestGobDeleteUser(t *testing.T) {
         t.Fatalf("DeleteUser error: %v", err)
     }
 }
+
+func TestGobClose(t *testing.T) {
+    b.Close()
+}

@@ -181,3 +181,7 @@ func TestSqlDeleteUser_sql(t *testing.T) {
         t.Fatalf("DeleteUser error: %v", err)
     }
 }
+
+func TestSqlClose(t *testing.T) {
+    sb.Close()
+}

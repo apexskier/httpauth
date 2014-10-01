@@ -56,6 +56,7 @@ type AuthBackend interface {
     User(username string) (user UserData, ok bool)
     Users() (users []UserData)
     DeleteUser(username string) error
+    Close()
 }
 
 // Helper function to add a user directed message to a message queue.
