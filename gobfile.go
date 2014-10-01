@@ -75,6 +75,7 @@ func (b GobFileAuthBackend) DeleteUser(username string) error {
     return err
 }
 
+// Close cleans up the backend. Currently a no-op for gobfiles.
 func (b GobFileAuthBackend) Close() {
     ;
 }

@@ -81,6 +81,7 @@ func (b SqlAuthBackend) DeleteUser(username string) error {
     return err
 }
 
+// Close cleans up the backend by terminating the database connection.
 func (b SqlAuthBackend) Close() {
     err := b.db.Close()
     if err != nil {
