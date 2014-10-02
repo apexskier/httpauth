@@ -11,7 +11,7 @@ implemented relatively easily.
 
 - [File based](https://godoc.org/github.com/apexskier/goauth#NewGobFileAuthBackend) ([gob](http://golang.org/pkg/encoding/gob/))
 - [Various SQL Databases](https://godoc.org/github.com/apexskier/httpauth#NewSqlAuthBackend)
-  (tests for [MySQL](https://github.com/go-sql-driver/mysql),
+  (tested with [MySQL](https://github.com/go-sql-driver/mysql),
   [PostgresSQL](https://github.com/lib/pq),
   [SQLite](https://github.com/mattn/go-sqlite3))
 - [MongoDB](https://godoc.org/github.com/apexskier/httpauth#NewMongodbBackend) ([mgo](http://gopkg.in/mgo.v2))
