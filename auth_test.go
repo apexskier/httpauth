@@ -30,6 +30,7 @@ func init() {
 }
 
 func TestNewAuthorizer(t *testing.T) {
+    os.Remove(file)
     if _, err := os.Create(file); err != nil {
         t.Fatal(err.Error())
     }
@@ -69,7 +70,7 @@ func TestRegister(t *testing.T) {
     if err == nil {
         t.Fatal("Register: User registered with duplicate name")
     }
-    if em := err.Error(); em != "user already exists" {
+    if em := err.Error(); em != "httpauth: user already exists" {
         t.Fatalf("Register: %v", em)
     }
     headers := rw.Header()
@@ -172,6 +173,8 @@ func TestDeleteUser(t *testing.T) {
         t.Fatalf("DeleteUser error: %v", err)
     }
     if err := a.DeleteUser("username"); err != ErrDeleteNull {
-        t.Fatalf("DeleteUser should have returned ErrDeleteNull: %v", err)
+        t.Fatalf("DeleteUser should have returned ErrDeleteNull: got %v", err)
     }
+
+    os.Remove(file)
 }

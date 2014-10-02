@@ -29,8 +29,8 @@ import (
 // time of call.
 // ErrMissingUser is returned by Users when a user is not found.
 var (
-    ErrDeleteNull = errors.New("deleting non-existant user")
-    ErrMissingUser = errors.New("can't find user")
+    ErrDeleteNull = mkerror("deleting non-existant user")
+    ErrMissingUser = mkerror("can't find user")
 )
 
 // Role represents an interal role. Roles are essentially a string mapped to an
@@ -83,6 +83,10 @@ func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
     redirectSession.AddFlash(req.URL.Path)
 }
 
+func mkerror(msg string) error {
+    return errors.New("httpauth: " + msg)
+}
+
 // NewAuthorizer returns a new Authorizer given an AuthBackend, a cookie store
 // key, a default user role, and a map of roles. If the key changes, logged in
 // users will need to reauthenticate.
@@ -103,7 +107,7 @@ func NewAuthorizer(backend AuthBackend, key []byte, defaultRole string, roles ma
     a.roles = roles
     a.defaultRole = defaultRole
     if _, ok := roles[defaultRole]; !ok {
-        return a, errors.New("defaultRole not found in roles")
+        return a, mkerror("httpauth: defaultRole missing")
     }
     return a, nil
 }
@@ -114,17 +118,17 @@ func NewAuthorizer(backend AuthBackend, key []byte, defaultRole string, roles ma
 func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, dest string) error {
     session, _ := a.cookiejar.Get(req, "auth")
     if session.Values["username"] != nil {
-        return errors.New("already authenticated")
+        return mkerror("already authenticated")
     }
     if user, err := a.backend.User(u); err == nil {
         verify := bcrypt.CompareHashAndPassword(user.Hash, []byte(u+p))
         if verify != nil {
             a.addMessage(rw, req, "Invalid username or password.")
-            return errors.New("password doesn't match")
+            return mkerror("password doesn't match")
         }
     } else {
         a.addMessage(rw, req, "Invalid username or password.")
-        return errors.New("user not found")
+        return mkerror("user not found")
     }
     session.Values["username"] = u
     session.Save(req, rw)
@@ -144,31 +148,34 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 // is given, the default one is used.
 func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user UserData, password string) error {
     if user.Username == "" {
-        return errors.New("no username given")
+        return mkerror("no username given")
     }
     if user.Email == "" {
-        return errors.New("no email given")
+        return mkerror("no email given")
     }
     if user.Hash != nil {
-        return errors.New("hash will be overwritten")
+        return mkerror("hash will be overwritten")
     }
     if password == "" {
-        return errors.New("no password given")
+        return mkerror("no password given")
     }
 
     // Validate username
     _, err := a.backend.User(user.Username)
     if err == nil {
         a.addMessage(rw, req, "Username has been taken.")
-        return errors.New("user already exists")
+        return mkerror("user already exists")
     } else if err != ErrMissingUser {
-        return err
+        if err != nil {
+            return mkerror(err.Error())
+        }
+        return nil
     }
 
     // Generate and save hash
     hash, err := bcrypt.GenerateFromPassword([]byte(user.Username+password), 8)
     if err != nil {
-        return errors.New("couldn't save password: " + err.Error())
+        return mkerror("couldn't save password: " + err.Error())
     }
     user.Hash = hash
 
@@ -177,15 +184,16 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user Use
         user.Role = a.defaultRole
     } else {
         if _, ok := a.roles[user.Role]; !ok {
-            return errors.New("non-existant role")
+            return mkerror("non-existant role")
         }
     }
 
     err = a.backend.SaveUser(user)
     if err != nil {
         a.addMessage(rw, req, err.Error())
+        return mkerror(err.Error())
     }
-    return err
+    return nil
 }
 
 // Update changes data for an existing user. Needs thought...
@@ -197,19 +205,19 @@ func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, 
     authSession, err := a.cookiejar.Get(req, "auth")
     username, ok := authSession.Values["username"].(string)
     if !ok {
-        return errors.New("not logged in")
+        return mkerror("not logged in")
     }
     user, err := a.backend.User(username)
     if err == ErrMissingUser {
         a.addMessage(rw, req, "User doesn't exist.")
-        return errors.New("user doesn't exists")
+        return mkerror("user doesn't exists")
     } else if err != nil {
-        return err
+        return mkerror(err.Error())
     }
     if p != "" {
         hash, err = bcrypt.GenerateFromPassword([]byte(username+p), 8)
         if err != nil {
-            return errors.New("couldn't save password: " + err.Error())
+            return mkerror("couldn't save password: " + err.Error())
         }
     } else {
         hash = user.Hash
@@ -240,14 +248,14 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
         if redirectWithMessage {
             a.goBack(rw, req)
         }
-        return errors.New("new authorization session")
+        return mkerror("new authorization session")
     }
     /*if authSession.IsNew {
         if redirectWithMessage {
             a.goBack(rw, req)
             a.addMessage(rw, req, "Log in to do that.")
         }
-        return errors.New("no session existed")
+        return mkerror("no session existed")
     }*/
     username := authSession.Values["username"]
     if !authSession.IsNew && username != nil {
@@ -259,9 +267,9 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
                 a.goBack(rw, req)
                 a.addMessage(rw, req, "Log in to do that.")
             }
-            return errors.New("user not found")
+            return mkerror("user not found")
         } else if err != nil {
-            return err
+            return mkerror(err.Error())
         }
     }
     if username == nil {
@@ -269,7 +277,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
             a.goBack(rw, req)
             a.addMessage(rw, req, "Log in to do that.")
         }
-        return errors.New("user not logged in")
+        return mkerror("user not logged in")
     }
     return nil
 }
@@ -279,10 +287,10 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
 func (a Authorizer) AuthorizeRole(rw http.ResponseWriter, req *http.Request, role string, redirectWithMessage bool) error {
     r, ok := a.roles[role]
     if !ok {
-        return errors.New("role not found")
+        return mkerror("role not found")
     }
     if err := a.Authorize(rw, req, redirectWithMessage); err != nil {
-        return err
+        return mkerror(err.Error())
     }
     authSession, _ := a.cookiejar.Get(req, "auth") // should I check err? I've already checked in call to Authorize
     username := authSession.Values["username"]
@@ -291,22 +299,22 @@ func (a Authorizer) AuthorizeRole(rw http.ResponseWriter, req *http.Request, rol
             return nil
         }
         a.addMessage(rw, req, "You don't have sufficient privileges.")
-        return errors.New("user doesn't have high enough role")
+        return mkerror("user doesn't have high enough role")
     }
-    return errors.New("user not found")
+    return mkerror("user not found")
 }
 
 // CurrentUser returns the currently logged in user and a boolean validating
 // the information.
 func (a Authorizer) CurrentUser(rw http.ResponseWriter, req *http.Request) (user UserData, e error) {
     if err := a.Authorize(rw, req, false); err != nil {
-        return user, err
+        return user, mkerror(err.Error())
     }
     authSession, _ := a.cookiejar.Get(req, "auth")
 
     username, ok := authSession.Values["username"].(string)
     if !ok {
-        return user, errors.New("User not found in authsession")
+        return user, mkerror("User not found in authsession")
     }
     return a.backend.User(username)
 }
@@ -325,6 +333,9 @@ func (a Authorizer) Logout(rw http.ResponseWriter, req *http.Request) error {
 // the user to be deleted isn't found.
 func (a Authorizer) DeleteUser(username string) error {
     err := a.backend.DeleteUser(username)
+    if err != nil && err != ErrDeleteNull {
+        return mkerror(err.Error())
+    }
     return err
 }
 

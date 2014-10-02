@@ -3,6 +3,7 @@ package httpauth
 import (
     "gopkg.in/mgo.v2"
     "gopkg.in/mgo.v2/bson"
+    "errors"
 )
 
 // MongodbAuthBackend stores database connection information.
@@ -17,6 +18,10 @@ func (b MongodbAuthBackend) connect() *mgo.Collection {
     return session.DB(b.database).C("goauth")
 }
 
+func mkmgoerror(msg string) error {
+    return errors.New("mongobackend: " + msg)
+}
+
 // NewMongodbBackend initializes a new backend.
 // Be sure to call Close() on this to clean up the mongodb connection.
 // Example:
@@ -28,11 +33,11 @@ func NewMongodbBackend(mongoURL string, database string) (b MongodbAuthBackend, 
     b.database = database
     session, err := mgo.Dial(b.mongoURL)
     if err != nil {
-        return b, err
+        return b, mkmgoerror(err.Error())
     }
     err = session.Ping()
     if err != nil {
-        return b, err
+        return b, mkmgoerror(err.Error())
     }
 
     // Ensure that the Username field is unique
@@ -42,7 +47,7 @@ func NewMongodbBackend(mongoURL string, database string) (b MongodbAuthBackend, 
     }
     err = session.DB(b.database).C("goauth").EnsureIndex(index)
     if err != nil {
-        return b, err
+        return b, mkmgoerror(err.Error())
     }
     b.session = session
     return
@@ -70,7 +75,7 @@ func (b MongodbAuthBackend) Users() (us []UserData, e error) {
 
     err := c.Find(bson.M{}).All(&us)
     if err != nil {
-        return us, err
+        return us, mkmgoerror(err.Error())
     }
     return
 }

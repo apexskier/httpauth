@@ -2,16 +2,16 @@ package httpauth
 
 import (
     "encoding/gob"
-    "errors"
     "os"
     "fmt"
+    "errors"
 )
 
 // ErrMissingBackend is returned by NewGobFileAuthBackend when the file doesn't
 // exist. Be sure to create (or touch) it if using brand new backend or
 // resetting backend.
 var (
-    ErrMissingBackend = errors.New("missing backend")
+    ErrMissingBackend = errors.New("gobfilebackend: missing backend")
 )
 
 // GobFileAuthBackend stores user data and the location of the gob file.
@@ -73,11 +73,14 @@ func (b GobFileAuthBackend) save() error {
     f, err := os.Create(b.filepath)
     defer f.Close()
     if err != nil {
-        return errors.New("auth file can't be edited. Is the data folder there?")
+        return errors.New("gobfilebackend: failed to edit auth file")
     }
     enc := gob.NewEncoder(f)
     err = enc.Encode(b.users)
-    return err
+    if err != nil {
+        fmt.Errorf("gobfilebackend: save: %v", err)
+    }
+    return nil
 }
 
 // DeleteUser removes a user, raising ErrDeleteNull if that user was missing.
@@ -86,7 +89,7 @@ func (b GobFileAuthBackend) DeleteUser(username string) error {
     if err == ErrMissingUser {
         return ErrDeleteNull
     } else if err != nil {
-        return err
+        return fmt.Errorf("gobfilebackend: %v", err)
     }
     delete(b.users, username)
     return b.save()
