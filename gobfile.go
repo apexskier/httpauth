@@ -4,6 +4,7 @@ import (
     "encoding/gob"
     "errors"
     "os"
+    "fmt"
 )
 
 // GobFileAuthBackend stores user data and the location of the gob file.
@@ -14,23 +15,26 @@ type GobFileAuthBackend struct {
 
 // NewGobFileAuthBackend initializes a new backend by loading a map of users
 // from a file.
-func NewGobFileAuthBackend(filepath string) (b GobFileAuthBackend) {
+// If the file doesn't exist, returns ErrMissingBackend.
+func NewGobFileAuthBackend(filepath string) (b GobFileAuthBackend, e error) {
     b.filepath = filepath
     if _, err := os.Stat(b.filepath); err == nil {
         f, err := os.Open(b.filepath)
         defer f.Close()
         if err != nil {
-            panic(err.Error())
+            return b, fmt.Errorf("gobfilebackend: %v", err.Error())
         }
         dec := gob.NewDecoder(f)
         dec.Decode(&b.users)
     } else if !os.IsNotExist(err) {
-        panic(err.Error())
+        return b, fmt.Errorf("gobfilebackend: %v", err.Error())
+    } else {
+        return b, ErrMissingBackend
     }
     if b.users == nil {
         b.users = make(map[string]UserData)
     }
-    return b
+    return b, nil
 }
 
 // User returns the user with the given username.

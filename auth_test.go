@@ -17,12 +17,13 @@ var (
 )
 
 func init() {
-    os.Remove(file)
-    b = NewGobFileAuthBackend(file)
+    _, err := os.Create(file)
+    if err != nil {
+        panic(err)
+    }
     roles := make(map[string]Role)
     roles["user"] = 40
     roles["admin"] = 80
-    a, _ = NewAuthorizer(b, []byte("testkey"), "user", roles)
     t, _ := time.Parse("Mon, 02 Jan 2006 15:04:05 MST", "Mon, 07 Apr 2014 21:47:54 UTC")
     authCookie = http.Cookie{
         Name:    "auth",
@@ -33,10 +34,16 @@ func init() {
 }
 
 func TestNewAuthorizer(t *testing.T) {
+    var err error
+    b, err = NewGobFileAuthBackend(file)
+    if err != nil {
+        t.Fatalf(err.Error())
+    }
+
     roles := make(map[string]Role)
     roles["user"] = 40
     roles["admin"] = 80
-    _, err := NewAuthorizer(b, []byte("testkey"), "user", roles)
+    a, err = NewAuthorizer(b, []byte("testkey"), "user", roles)
     if err != nil {
         t.Fatalf(err.Error())
     }

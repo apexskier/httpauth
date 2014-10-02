@@ -2,16 +2,27 @@ package httpauth
 
 import (
     "bytes"
-    "os"
     "testing"
+    "os"
 )
 
-func init() {
-    os.Remove(file)
-    b = NewGobFileAuthBackend(file)
-}
-
 func TestNewGobFileAuthBackend(t *testing.T) {
+    var err error
+
+    os.Remove(file)
+    b, err = NewGobFileAuthBackend(file)
+    if err != ErrMissingBackend {
+        t.Fatal(err.Error())
+    }
+
+    _, err = os.Create(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+    b, err = NewGobFileAuthBackend(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
     if b.filepath != file {
         t.Fatal("File path not saved.")
     }
@@ -54,7 +65,10 @@ func TestSaveUser(t *testing.T) {
 }
 
 func TestNewGobFileAuthBackend_existing(t *testing.T) {
-    b2 := NewGobFileAuthBackend(file)
+    b2, err := NewGobFileAuthBackend(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
 
     if len(b2.users) != 2 {
         t.Fatal("Users not loaded.")
@@ -174,11 +188,11 @@ func TestGobDeleteUser(t *testing.T) {
         t.Fatalf("DeleteUser error: %v", err)
     }
     if _, ok := b.User("username"); ok {
-        t.Fatalf("DeleteUser: User not deleted")
+        t.Fatal("DeleteUser: User not deleted")
     }
     err := b.DeleteUser("username")
     if err == nil {
-        t.Fatalf("DeleteUser should have raised error")
+        t.Fatal("DeleteUser should have raised error")
     } else if err != ErrDeleteNull {
         t.Fatalf("DeleteUser raised unexpected error: %v", err)
     }
@@ -186,4 +200,8 @@ func TestGobDeleteUser(t *testing.T) {
 
 func TestGobClose(t *testing.T) {
     b.Close()
+    err := os.Remove(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
 }

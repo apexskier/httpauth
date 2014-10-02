@@ -27,6 +27,7 @@ import (
 
 var (
     ErrDeleteNull = errors.New("deleting non-existant user")
+    ErrMissingBackend = errors.New("missing backend")
 )
 
 // Role represents an interal role. Roles are essentially a string mapped to an
