@@ -2,21 +2,42 @@ package httpauth
 
 import (
     "bytes"
-    "os"
     "testing"
+    "os"
 )
 
-func init() {
-    os.Remove(file)
-    b = NewGobFileAuthBackend(file)
-}
-
 func TestNewGobFileAuthBackend(t *testing.T) {
+    var err error
+
+    os.Remove(file)
+    b, err = NewGobFileAuthBackend(file)
+    if err != ErrMissingBackend {
+        t.Fatal(err.Error())
+    }
+
+    _, err = os.Create(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+    b, err = NewGobFileAuthBackend(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
     if b.filepath != file {
         t.Fatal("File path not saved.")
     }
     if len(b.users) != 0 {
         t.Fatal("Users initialized with items.")
+    }
+}
+
+func TestGobFileAuthorizer(t *testing.T) {
+    roles := make(map[string]Role)
+    roles["user"] = 40
+    roles["admin"] = 80
+    _, err := NewAuthorizer(b, []byte("testkey"), "user", roles)
+    if err != nil {
+        t.Fatal(err)
     }
 }
 
@@ -54,28 +75,31 @@ func TestSaveUser(t *testing.T) {
 }
 
 func TestNewGobFileAuthBackend_existing(t *testing.T) {
-    b2 := NewGobFileAuthBackend(file)
+    b2, err := NewGobFileAuthBackend(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
 
     if len(b2.users) != 2 {
-        t.Fatal("Users not loaded.")
+        t.Error("Users not loaded.")
     }
     if b2.users["username"].Username != "username" {
-        t.Fatal("Username not correct.")
+        t.Error("Username not correct.")
     }
     if b2.users["username"].Email != "email" {
-        t.Fatal("User email not correct.")
+        t.Error("User email not correct.")
     }
     if !bytes.Equal(b2.users["username"].Hash, []byte("passwordhash")) {
-        t.Fatal("User password not correct.")
+        t.Error("User password not correct.")
     }
     if b2.users["username2"].Username != "username2" {
-        t.Fatal("Username not correct.")
+        t.Error("Username not correct.")
     }
     if b2.users["username2"].Email != "email2" {
-        t.Fatal("User email not correct.")
+        t.Error("User email not correct.")
     }
     if !bytes.Equal(b2.users["username2"].Hash, []byte("passwordhash2")) {
-        t.Fatal("User password not correct.")
+        t.Error("User password not correct.")
     }
 }
 
@@ -109,7 +133,10 @@ func TestUsers(t *testing.T) {
         u1 UserData
         u2 UserData
     )
-    users := b.Users()
+    users, err := b.Users()
+    if err != nil {
+        t.Fatal(err.Error())
+    }
     if len(users) != 2 {
         t.Fatal("Wrong amount of users found.")
     }
@@ -174,13 +201,47 @@ func TestGobDeleteUser(t *testing.T) {
         t.Fatalf("DeleteUser error: %v", err)
     }
     if _, ok := b.User("username"); ok {
-        t.Fatalf("DeleteUser: User not deleted")
+        t.Fatal("DeleteUser: User not deleted")
     }
-    if err := b.DeleteUser("username"); err != nil {
-        t.Fatalf("DeleteUser error: %v", err)
+    err := b.DeleteUser("username")
+    if err != ErrDeleteNull {
+        t.Fatalf("DeleteUser should have raised ErrDeleteNull: %v", err)
+    } else if err != ErrDeleteNull {
+        t.Fatalf("DeleteUser raised unexpected error: %v", err)
     }
 }
 
-func TestGobClose(t *testing.T) {
+func TestGobReopen(t *testing.T) {
     b.Close()
+    b, err := NewGobFileAuthBackend(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+    b.Close()
+
+    b, err = NewGobFileAuthBackend(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+
+    if len(b.users) != 1 {
+        t.Error("Users not loaded.")
+    }
+    if b.users["username2"].Username != "username2" {
+        t.Error("Username not correct.")
+    }
+    if b.users["username2"].Email != "email2" {
+        t.Error("User email not correct.")
+    }
+    if !bytes.Equal(b.users["username2"].Hash, []byte("passwordhash2")) {
+        t.Error("User password not correct.")
+    }
+}
+
+func TestGobReclose(t *testing.T) {
+    b.Close()
+    err := os.Remove(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
 }

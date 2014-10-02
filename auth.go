@@ -25,6 +25,11 @@ import (
     "net/http"
 )
 
+var (
+    ErrDeleteNull = errors.New("deleting non-existant user")
+    ErrMissingBackend = errors.New("missing backend")
+)
+
 // Role represents an interal role. Roles are essentially a string mapped to an
 // integer. Roles must be greater than zero.
 type Role int
@@ -34,10 +39,10 @@ type Role int
 // users, you should not specify a hash; it will be generated in the Register
 // and Update functions.
 type UserData struct {
-    Username string
-    Email    string
-    Hash     []byte
-    Role     string
+    Username string `bson:"Username"`
+    Email    string `bson:"Email"`
+    Hash     []byte `bson:"Hash"`
+    Role     string `bson:"Role"`
 }
 
 // Authorizer structures contain the store of user session cookies a reference
@@ -54,7 +59,7 @@ type Authorizer struct {
 type AuthBackend interface {
     SaveUser(u UserData) error
     User(username string) (user UserData, ok bool)
-    Users() (users []UserData)
+    Users() (users []UserData, e error)
     DeleteUser(username string) error
     Close()
 }

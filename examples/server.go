@@ -2,26 +2,48 @@ package main
 
 import (
     "net/http"
+    "code.google.com/p/go.crypto/bcrypt"
     "github.com/apexskier/httpauth"
     "github.com/gorilla/mux"
     "html/template"
     "fmt"
+    "os"
 )
 
 var (
     backend httpauth.GobFileAuthBackend
     aaa httpauth.Authorizer
     roles map[string]httpauth.Role
+    port = 8009
+    backendfile = "auth.gob"
 )
 
 
 func main() {
     var err error
-    backend = httpauth.NewGobFileAuthBackend("auth.gob")
+    // create the backend storage, remove when all done
+    os.Create(backendfile)
+    defer os.Remove(backendfile)
+
+    // create the backend
+    backend, err = httpauth.NewGobFileAuthBackend(backendfile)
+    if err != nil {
+        panic(err)
+    }
+
+    // create some default roles
     roles = make(map[string]httpauth.Role)
     roles["user"] = 30
     roles["admin"] = 80
     aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "user", roles)
+
+    // create a default user
+    hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), 8)
+    if err != nil {
+        panic(err)
+    }
+    defaultUser := httpauth.UserData{Username:"admin", Email:"admin@localhost", Hash:hash, Role:"admin"}
+    err = backend.SaveUser(defaultUser)
     if err != nil {
         panic(err)
     }
@@ -39,7 +61,8 @@ func main() {
     r.HandleFunc("/logout", handleLogout)
 
     http.Handle("/", r)
-    http.ListenAndServe(":8080", nil)
+    fmt.Printf("Server running on port %d\n", port)
+    http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 func getLogin(rw http.ResponseWriter, req *http.Request) {
@@ -160,7 +183,11 @@ func handleAdmin(rw http.ResponseWriter, req *http.Request) {
             Msg []string
         }
         messages := aaa.Messages(rw, req)
-        d := data{User:user, Roles:roles, Users:backend.Users(), Msg:messages}
+        users, err := backend.Users()
+        if err != nil {
+            panic(err)
+        }
+        d := data{User:user, Roles:roles, Users:users, Msg:messages}
         t, err := template.New("admin").Parse(`
             <html>
             <head><title>Admin page</title></head>
