@@ -57,7 +57,7 @@ func (b SqlAuthBackend) User(username string) (user UserData, ok bool) {
 
 // Users returns a slice of all users.
 func (b SqlAuthBackend) Users() (us []UserData, e error) {
-    rows, err := b.db.Query("select Username, Email, Hash, Role from goauth")
+    rows, err := b.db.Query(`select Username, Email, Hash, Role from goauth`)
     if err != nil {
         return us, err
     }
@@ -78,16 +78,16 @@ func (b SqlAuthBackend) Users() (us []UserData, e error) {
 // SaveUser adds a new user, replacing one with the same username.
 func (b SqlAuthBackend) SaveUser(user UserData) (err error) {
     if _, ok := b.User(user.Username); !ok {
-        _, err = b.db.Exec("insert into goauth (Username, Email, Hash, Role) values (?, ?, ?, ?)", user.Username, user.Email, user.Hash, user.Role)
+        _, err = b.db.Exec(`insert into goauth (Username, Email, Hash, Role) values ($1, $2, $3, $4)`, user.Username, user.Email, user.Hash, user.Role)
     } else {
-        _, err = b.db.Exec("update goauth set Email=?, Hash=?, Role=? where Username=?", user.Email, user.Hash, user.Role, user.Username)
+        _, err = b.db.Exec(`update goauth set Email=?, Hash=?, Role=? where Username=?`, user.Email, user.Hash, user.Role, user.Username)
     }
     return
 }
 
 // DeleteUser removes a user, raising ErrDeleteNull if that user was missing.
 func (b SqlAuthBackend) DeleteUser(username string) error {
-    result, err := b.db.Exec("delete from goauth where Username=?", username)
+    result, err := b.db.Exec(`delete from goauth where Username=?`, username)
     if err != nil {
         return err
     }

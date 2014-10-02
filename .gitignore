@@ -6,3 +6,4 @@ auth_test.gob
 auth.gob
 server
 mongodbtest
+pgdbtest

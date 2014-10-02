@@ -12,6 +12,7 @@ install:
 
 before_script:
     - mysql -e 'create database httpauth_test;'
+    - psql -c 'create database httpauth_test;' -U postgres
 
 services:
     - mongodb
