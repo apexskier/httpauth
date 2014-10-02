@@ -6,18 +6,26 @@ import (
     "github.com/gorilla/mux"
     "html/template"
     "fmt"
+    "os"
 )
 
 var (
     backend httpauth.GobFileAuthBackend
     aaa httpauth.Authorizer
     roles map[string]httpauth.Role
+    port = 8009
+    backendfile = "auth.gob"
 )
 
 
 func main() {
     var err error
-    backend = httpauth.NewGobFileAuthBackend("auth.gob")
+    os.Create(backendfile)
+    defer os.Remove(backendfile)
+    backend, err = httpauth.NewGobFileAuthBackend(backendfile)
+    if err != nil {
+        panic(err)
+    }
     roles = make(map[string]httpauth.Role)
     roles["user"] = 30
     roles["admin"] = 80
@@ -39,7 +47,8 @@ func main() {
     r.HandleFunc("/logout", handleLogout)
 
     http.Handle("/", r)
-    http.ListenAndServe(":8080", nil)
+    fmt.Printf("Server running on port %d\n", port)
+    http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 func getLogin(rw http.ResponseWriter, req *http.Request) {
@@ -160,7 +169,11 @@ func handleAdmin(rw http.ResponseWriter, req *http.Request) {
             Msg []string
         }
         messages := aaa.Messages(rw, req)
-        d := data{User:user, Roles:roles, Users:backend.Users(), Msg:messages}
+        users, err := backend.Users()
+        if err != nil {
+            panic(err)
+        }
+        d := data{User:user, Roles:roles, Users:users, Msg:messages}
         t, err := template.New("admin").Parse(`
             <html>
             <head><title>Admin page</title></head>
