@@ -9,6 +9,13 @@ type SqlAuthBackend struct {
     driverName     string
     dataSourceName string
     db             *sql.DB
+
+    // prepared statements
+    userStmt       *sql.Stmt
+    usersStmt      *sql.Stmt
+    insertStmt     *sql.Stmt
+    updateStmt     *sql.Stmt
+    deleteStmt     *sql.Stmt
 }
 
 // NewSqlAuthBackend initializes a new backend by testing the database
@@ -41,12 +48,35 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e e
     if err != nil {
         return b, err
     }
+
+    // prepare statements
+    b.userStmt, err = db.Prepare(`select Email, Hash, Role from goauth where Username=?`)
+    if err != nil {
+        return b, err
+    }
+    b.usersStmt, err = db.Prepare(`select Username, Email, Hash, Role from goauth`)
+    if err != nil {
+        return b, err
+    }
+    b.insertStmt, err = db.Prepare(`insert into goauth (Username, Email, Hash, Role) values (?, ?, ?, ?)`)
+    if err != nil {
+        return b, err
+    }
+    b.updateStmt, err = db.Prepare(`update goauth set Email=?, Hash=?, Role=? where Username=?`)
+    if err != nil {
+        return b, err
+    }
+    b.deleteStmt, err = db.Prepare(`delete from goauth where Username=?`)
+    if err != nil {
+        return b, err
+    }
+
     return b, nil
 }
 
 // User returns the user with the given username.
 func (b SqlAuthBackend) User(username string) (user UserData, ok bool) {
-    row := b.db.QueryRow(`select Email, Hash, Role from goauth where Username=?`, username)
+    row := b.userStmt.QueryRow(username)
     err := row.Scan(&user.Email, &user.Hash, &user.Role)
     if err != nil {
         return user, false
@@ -57,7 +87,7 @@ func (b SqlAuthBackend) User(username string) (user UserData, ok bool) {
 
 // Users returns a slice of all users.
 func (b SqlAuthBackend) Users() (us []UserData, e error) {
-    rows, err := b.db.Query(`select Username, Email, Hash, Role from goauth`)
+    rows, err := b.usersStmt.Query()
     if err != nil {
         return us, err
     }
@@ -77,17 +107,17 @@ func (b SqlAuthBackend) Users() (us []UserData, e error) {
 
 // SaveUser adds a new user, replacing one with the same username.
 func (b SqlAuthBackend) SaveUser(user UserData) (err error) {
-    if _, ok := b.User(user.Username); !ok {
-        _, err = b.db.Exec(`insert into goauth (Username, Email, Hash, Role) values ($1, $2, $3, $4)`, user.Username, user.Email, user.Hash, user.Role)
+    if _, ok := b.User(user.Username); ok {
+        _, err = b.updateStmt.Exec(user.Email, user.Hash, user.Role, user.Username)
     } else {
-        _, err = b.db.Exec(`update goauth set Email=?, Hash=?, Role=? where Username=?`, user.Email, user.Hash, user.Role, user.Username)
+        _, err = b.insertStmt.Exec(user.Username, user.Email, user.Hash, user.Role)
     }
     return
 }
 
 // DeleteUser removes a user, raising ErrDeleteNull if that user was missing.
 func (b SqlAuthBackend) DeleteUser(username string) error {
-    result, err := b.db.Exec(`delete from goauth where Username=?`, username)
+    result, err := b.deleteStmt.Exec(username)
     if err != nil {
         return err
     }

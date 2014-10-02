@@ -260,7 +260,7 @@ func TestSqlClose_mysql(t *testing.T) {
 //
 // postgresql tests
 //
-
+/*
 func TestSqlInit_postgres(t *testing.T) {
     con, err := sql.Open(pgDriverName, pgDriverInfo)
     if err != nil {
@@ -495,3 +495,4 @@ func TestSqlDelete2_postgres(t *testing.T) {
 func TestSqlClose_postgres(t *testing.T) {
     sb.Close()
 }
+*/
