@@ -16,32 +16,31 @@ var (
 
 // GobFileAuthBackend stores user data and the location of the gob file.
 type GobFileAuthBackend struct {
-    filepath string
+    Filepath string
     users    map[string]UserData
 }
 
 // NewGobFileAuthBackend initializes a new backend by loading a map of users
 // from a file.
 // If the file doesn't exist, returns an error.
-func NewGobFileAuthBackend(filepath string) (b GobFileAuthBackend, e error) {
-    b.filepath = filepath
-    if _, err := os.Stat(b.filepath); err == nil {
-        f, err := os.Open(b.filepath)
+func (b GobFileAuthBackend) Init() error {
+    if _, err := os.Stat(b.Filepath); err == nil {
+        f, err := os.Open(b.Filepath)
         defer f.Close()
         if err != nil {
-            return b, fmt.Errorf("gobfilebackend: %v", err.Error())
+            return fmt.Errorf("gobfilebackend: %v", err.Error())
         }
         dec := gob.NewDecoder(f)
         dec.Decode(&b.users)
     } else if !os.IsNotExist(err) {
-        return b, fmt.Errorf("gobfilebackend: %v", err.Error())
+        return fmt.Errorf("gobfilebackend: %v", err.Error())
     } else {
-        return b, ErrMissingBackend
+        return ErrMissingBackend
     }
     if b.users == nil {
         b.users = make(map[string]UserData)
     }
-    return b, nil
+    return nil
 }
 
 // User returns the user with the given username. Error is set to
@@ -64,13 +63,16 @@ func (b GobFileAuthBackend) Users() (us []UserData, e error) {
 // SaveUser adds a new user, replacing one with the same username, and saves a
 // gob file.
 func (b GobFileAuthBackend) SaveUser(user UserData) error {
+    if b.users == nil {
+        return errors.New("Users not initialized properly.")
+    }
     b.users[user.Username] = user
     err := b.save()
     return err
 }
 
 func (b GobFileAuthBackend) save() error {
-    f, err := os.Create(b.filepath)
+    f, err := os.Create(b.Filepath)
     defer f.Close()
     if err != nil {
         return errors.New("auth file can't be edited. Is the data folder there?")

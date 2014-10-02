@@ -8,8 +8,9 @@ import (
 
 // SqlAuthBackend database and database connection information.
 type SqlAuthBackend struct {
-    driverName     string
-    dataSourceName string
+    DriverName     string
+    DriverInfo     string
+
     db             *sql.DB
 
     // prepared statements
@@ -34,26 +35,27 @@ type SqlAuthBackend struct {
 // Be sure to import "database/sql" and your driver of choice. If you're not
 // using sql for your own purposes, you'll need to use the underscore to import
 // for side effects; see http://golang.org/doc/effective_go.html#blank_import.
-func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e error) {
-    b.driverName = driverName
-    b.dataSourceName = dataSourceName
-    if driverName == "sqlite3" {
-        if _, err := os.Stat(dataSourceName); os.IsNotExist(err) {
-            return b, ErrMissingBackend
+func (b SqlAuthBackend) Init() error {
+    if b.DriverName == "" || b.DriverInfo == "" {
+        return ErrUnconfiguredBackend
+    }
+    if b.DriverName == "sqlite3" {
+        if _, err := os.Stat(b.DriverInfo); os.IsNotExist(err) {
+            return ErrMissingBackend
         }
     }
-    db, err := sql.Open(driverName, dataSourceName)
+    db, err := sql.Open(b.DriverName, b.DriverInfo)
     if err != nil {
-        return b, err
+        return err
     }
     err = db.Ping()
     if err != nil {
-        return b, err
+        return err
     }
     b.db = db
     _, err = db.Exec(`create table if not exists goauth (Username varchar(255), Email varchar(255), Hash varchar(255), Role varchar(255), primary key (Username))`)
     if err != nil {
-        return b, err
+        return err
     }
 
     // prepare statements for concurrent use and better preformance
@@ -64,51 +66,51 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e e
     // lowercases all these column names.
     //
     // Thanks to mjhall for letting me know about this.
-    if driverName == "postgres" {
+    if b.DriverName == "postgres" {
         b.userStmt, err = db.Prepare(`select Email, Hash, Role from goauth where Username = $1`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: userstmt: %v", err)
+            return fmt.Errorf("sqlbackend error: userstmt: %v", err)
         }
         b.usersStmt, err = db.Prepare(`select Username, Email, Hash, Role from goauth`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: usersstmt: %v", err)
+            return fmt.Errorf("sqlbackend error: usersstmt: %v", err)
         }
         b.insertStmt, err = db.Prepare(`insert into goauth (Username, Email, Hash, Role) values ($1, $2, $3, $4)`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: insertstmt: %v", err)
+            return fmt.Errorf("sqlbackend error: insertstmt: %v", err)
         }
         b.updateStmt, err = db.Prepare(`update goauth set Email = $1, Hash = $2, Role = $3 where Username = $4`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: updatestmt: %v", err)
+            return fmt.Errorf("sqlbackend error: updatestmt: %v", err)
         }
         b.deleteStmt, err = db.Prepare(`delete from goauth where Username = $1`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: deletestmt: %v", err)
+            return fmt.Errorf("sqlbackend error: deletestmt: %v", err)
         }
     } else {
         b.userStmt, err = db.Prepare(`select Email, Hash, Role from goauth where Username = ?`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: userstmt: %v", err)
+            return fmt.Errorf("sqlbackend error: userstmt: %v", err)
         }
         b.usersStmt, err = db.Prepare(`select Username, Email, Hash, Role from goauth`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: usersstmt: %v", err)
+            return fmt.Errorf("sqlbackend error: usersstmt: %v", err)
         }
         b.insertStmt, err = db.Prepare(`insert into goauth (Username, Email, Hash, Role) values (?, ?, ?, ?)`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: insertstmt: %v", err)
+            return fmt.Errorf("sqlbackend error: insertstmt: %v", err)
         }
         b.updateStmt, err = db.Prepare(`update goauth set Email = ?, Hash = ?, Role = ? where Username = ?`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: updatestmt: %v", err)
+            return fmt.Errorf("sqlbackend error: updatestmt: %v", err)
         }
         b.deleteStmt, err = db.Prepare(`delete from goauth where Username = ?`)
         if err != nil {
-            return b, fmt.Errorf("sqlbackend error: deletestmt: %v", err)
+            return fmt.Errorf("sqlbackend error: deletestmt: %v", err)
         }
     }
 
-    return b, nil
+    return nil
 }
 
 // User returns the user with the given username. Error is set to

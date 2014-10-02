@@ -11,7 +11,6 @@ import (
 var (
     b          GobFileAuthBackend
     a          Authorizer
-    file       = "auth_test.gob"
     c          http.Client
     authCookie http.Cookie
 )
@@ -30,12 +29,13 @@ func init() {
 }
 
 func TestNewAuthorizer(t *testing.T) {
+    file := "auth_test.gob"
     if _, err := os.Create(file); err != nil {
         t.Fatal(err.Error())
     }
 
-    var err error
-    b, err = NewGobFileAuthBackend(file)
+    b.Filepath = file
+    err := b.Init()
     if err != nil {
         t.Fatal(err.Error())
     }

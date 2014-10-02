@@ -7,14 +7,15 @@ import (
 
 // MongodbAuthBackend stores database connection information.
 type MongodbAuthBackend struct {
-    mongoURL string
-    database string
+    MongoURL string
+    Database string
+    Collection string
     session  *mgo.Session
 }
 
 func (b MongodbAuthBackend) connect() *mgo.Collection {
     session := b.session.Copy()
-    return session.DB(b.database).C("goauth")
+    return session.DB(b.Database).C(b.Collection)
 }
 
 // NewMongodbBackend initializes a new backend.
@@ -22,17 +23,15 @@ func (b MongodbAuthBackend) connect() *mgo.Collection {
 // Example:
 //     backend = httpauth.MongodbAuthBackend("mongodb://127.0.0.1/", "auth")
 //     defer backend.Close()
-func NewMongodbBackend(mongoURL string, database string) (b MongodbAuthBackend, e error) {
+func (b MongodbAuthBackend) Init() error {
     // Set up connection to database
-    b.mongoURL = mongoURL
-    b.database = database
-    session, err := mgo.Dial(b.mongoURL)
+    session, err := mgo.Dial(b.MongoURL)
     if err != nil {
-        return b, err
+        return err
     }
     err = session.Ping()
     if err != nil {
-        return b, err
+        return err
     }
 
     // Ensure that the Username field is unique
@@ -40,12 +39,12 @@ func NewMongodbBackend(mongoURL string, database string) (b MongodbAuthBackend, 
         Key: []string{"Username"},
         Unique: true,
     }
-    err = session.DB(b.database).C("goauth").EnsureIndex(index)
+    err = session.DB(b.Database).C(b.Collection).EnsureIndex(index)
     if err != nil {
-        return b, err
+        return err
     }
     b.session = session
-    return
+    return nil
 }
 
 // User returns the user with the given username. Error is set to

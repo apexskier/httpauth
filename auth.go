@@ -31,6 +31,7 @@ import (
 var (
     ErrDeleteNull = errors.New("deleting non-existant user")
     ErrMissingUser = errors.New("can't find user")
+    ErrUnconfiguredBackend = errors.New("missing fields in backend")
 )
 
 // Role represents an interal role. Roles are essentially a string mapped to an
@@ -60,6 +61,7 @@ type Authorizer struct {
 // The AuthBackend interface defines a set of methods an AuthBackend must
 // implement.
 type AuthBackend interface {
+    Init() error
     SaveUser(u UserData) error
     User(username string) (user UserData, e error)
     Users() (users []UserData, e error)

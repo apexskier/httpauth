@@ -7,10 +7,12 @@ import (
 )
 
 func TestNewGobFileAuthBackend(t *testing.T) {
+    file := "auth_test.gob"
     var err error
 
     os.Remove(file)
-    b, err = NewGobFileAuthBackend(file)
+    b.Filepath = file
+    err = b.Init()
     if err != ErrMissingBackend {
         t.Fatal(err.Error())
     }
@@ -19,12 +21,12 @@ func TestNewGobFileAuthBackend(t *testing.T) {
     if err != nil {
         t.Fatal(err.Error())
     }
-    b, err = NewGobFileAuthBackend(file)
+    err = b.Init()
     if err != nil {
         t.Fatal(err.Error())
     }
-    if b.filepath != file {
-        t.Fatal("File path not saved.")
+    if b.users == nil {
+        t.Fatal("Users not initialized properly.")
     }
     if len(b.users) != 0 {
         t.Fatal("Users initialized with items.")
@@ -42,6 +44,10 @@ func TestGobFileAuthorizer(t *testing.T) {
 }
 
 func TestSaveUser(t *testing.T) {
+    if b.users == nil {
+        t.Fatal("Users not initialized properly.")
+    }
+
     user := UserData{Username:"username", Email:"email", Hash:[]byte("passwordhash"), Role:"user"}
     err := b.SaveUser(user)
     if err != nil {
@@ -81,7 +87,10 @@ func TestSaveUser(t *testing.T) {
 }
 
 func TestNewGobFileAuthBackend_existing(t *testing.T) {
-    b2, err := NewGobFileAuthBackend(file)
+    var b2 GobFileAuthBackend
+    file := "auth_test.gob"
+    b2.Filepath = file
+    err := b2.Init()
     if err != nil {
         t.Fatal(err.Error())
     }
@@ -231,13 +240,13 @@ func TestGobDeleteUser(t *testing.T) {
 
 func TestGobReopen(t *testing.T) {
     b.Close()
-    b, err := NewGobFileAuthBackend(file)
+    err := b.Init()
     if err != nil {
         t.Fatal(err.Error())
     }
     b.Close()
 
-    b, err = NewGobFileAuthBackend(file)
+    err = b.Init()
     if err != nil {
         t.Fatal(err.Error())
     }
@@ -258,6 +267,7 @@ func TestGobReopen(t *testing.T) {
 
 func TestGobReclose(t *testing.T) {
     b.Close()
+    file := "auth_test.gob"
     err := os.Remove(file)
     if err != nil {
         t.Fatal(err.Error())

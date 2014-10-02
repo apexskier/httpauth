@@ -10,6 +10,8 @@ import (
     "testing"
 )
 
+var backend SqlAuthBackend
+
 func testSqlInit(t *testing.T, driver string, info string) {
     con, err := sql.Open(driver, info)
     if err != nil {
@@ -28,20 +30,18 @@ func testSqlInit(t *testing.T, driver string, info string) {
 }
 
 func testSqlBackend(t *testing.T, driver string, info string) {
-    var err error
-    _, err = NewSqlAuthBackend(driver, info + "_fail")
+    var b2 SqlAuthBackend
+    b2.DriverName = driver
+    b2.DriverInfo = info + "_fail"
+    err := b2.Init()
     if err == nil {
         t.Fatal("Expected error on invalid connection.")
     }
-    backend, err := NewSqlAuthBackend(driver, info)
+    backend.DriverName = driver
+    backend.DriverInfo = info
+    err = backend.Init()
     if err != nil {
         t.Fatal(err.Error())
-    }
-    if backend.driverName != driver {
-        t.Fatal("Driver name.")
-    }
-    if backend.dataSourceName != info {
-        t.Fatal("Driver info not saved.")
     }
 
     TestBackend(t, backend)
@@ -50,14 +50,16 @@ func testSqlBackend(t *testing.T, driver string, info string) {
 func testSqlReopen(t *testing.T, driver string, info string) {
     var err error
 
-    backend, err := NewSqlAuthBackend(driver, info)
+    backend.Close()
+
+    err = backend.Init()
     if err != nil {
         t.Fatal(err.Error())
     }
 
     backend.Close()
 
-    backend, err = NewSqlAuthBackend(driver, info)
+    err = backend.Init()
     if err != nil {
         t.Fatal(err.Error())
     }

@@ -43,19 +43,17 @@ func TestNewMongodbAuthBackend(t *testing.T) {
     var err error
     // Note: the following takes 10 seconds. It really should be included, but
     // I don't want to wait that long.
-    //_, err = NewMongodbBackend("mongodb://example.com.doesntexist", db)
+    //b.MongoURL = "mongodb://example.com.doesntexist"
+    //err = b.Init()
     //if err == nil {
     //    t.Fatal("Expected error on invalid url.")
     //}
-    mongo_backend, err = NewMongodbBackend(url, db)
+    mongo_backend.MongoURL = url
+    mongo_backend.Database = db
+    mongo_backend.Collection = "goauth"
+    err = mongo_backend.Init()
     if err != nil {
-        t.Fatalf("NewMongodbBackend error: %v", err)
-    }
-    if mongo_backend.mongoURL != url {
-        t.Fatal("Url name.")
-    }
-    if mongo_backend.database != db {
-        t.Fatal("DB not saved.")
+        t.Fatalf("Init error: %v", err)
     }
 }
 
@@ -82,10 +80,17 @@ func TestSaveUser_mongodb(t *testing.T) {
 }
 
 func TestNewMongodbAuthBackend_existing(t *testing.T) {
-    var err error
-    b2, err := NewMongodbBackend(url, db)
+    var (
+        err error
+        b2 MongodbAuthBackend
+    )
+    b2.MongoURL = url
+    b2.Database = db
+    b2.Collection = "goauth"
+
+    err = b2.Init()
     if err != nil {
-        t.Fatalf("NewMongodbBackend (existing) error: %v", err)
+        t.Fatalf("Init (existing) error: %v", err)
     }
 
     user, err := b2.User("username")
@@ -220,14 +225,14 @@ func TestMongodbReopen(t *testing.T) {
 
     mongo_backend.Close()
 
-    mongo_backend, err = NewMongodbBackend(url, db)
+    err = mongo_backend.Init()
     if err != nil {
         t.Fatal(err.Error())
     }
 
     mongo_backend.Close()
 
-    mongo_backend, err = NewMongodbBackend(url, db)
+    err = mongo_backend.Init()
     if err != nil {
         t.Fatal(err.Error())
     }
