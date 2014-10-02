@@ -140,7 +140,7 @@ func handlePage(rw http.ResponseWriter, req *http.Request) {
         http.Redirect(rw, req, "/login", http.StatusSeeOther)
         return
     }
-    if user, ok := aaa.CurrentUser(rw, req); ok {
+    if user, err := aaa.CurrentUser(rw, req); err == nil {
         type data struct {
             User httpauth.UserData
         }
@@ -175,7 +175,7 @@ func handleAdmin(rw http.ResponseWriter, req *http.Request) {
         http.Redirect(rw, req, "/login", http.StatusSeeOther)
         return
     }
-    if user, ok := aaa.CurrentUser(rw, req); ok {
+    if user, err := aaa.CurrentUser(rw, req); err == nil {
         type data struct {
             User httpauth.UserData
             Roles map[string]httpauth.Role
