@@ -50,7 +50,7 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e e
     }
 
     // prepare statements
-    b.userStmt, err = db.Prepare(`select Email, Hash, Role from goauth where Username=?`)
+    b.userStmt, err = db.Prepare(`select Email, Hash, Role from goauth where Username = ?`)
     if err != nil {
         return b, err
     }
@@ -62,11 +62,11 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e e
     if err != nil {
         return b, err
     }
-    b.updateStmt, err = db.Prepare(`update goauth set Email=?, Hash=?, Role=? where Username=?`)
+    b.updateStmt, err = db.Prepare(`update goauth set Email = ?, Hash = ?, Role = ? where Username = ?`)
     if err != nil {
         return b, err
     }
-    b.deleteStmt, err = db.Prepare(`delete from goauth where Username=?`)
+    b.deleteStmt, err = db.Prepare(`delete from goauth where Username = ?`)
     if err != nil {
         return b, err
     }
@@ -138,4 +138,9 @@ func (b SqlAuthBackend) DeleteUser(username string) error {
 // Close cleans up the backend by terminating the database connection.
 func (b SqlAuthBackend) Close() {
     b.db.Close()
+    b.userStmt.Close()
+    b.usersStmt.Close()
+    b.insertStmt.Close()
+    b.updateStmt.Close()
+    b.deleteStmt.Close()
 }

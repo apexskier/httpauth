@@ -9,7 +9,7 @@ import (
 )
 
 var (
-    backend   MongodbAuthBackend
+    mongo_backend   MongodbAuthBackend
     url     = "mongodb://127.0.0.1/"
     db      = "test"
 )
@@ -47,14 +47,14 @@ func TestNewMongodbAuthBackend(t *testing.T) {
     //if err == nil {
     //    t.Fatal("Expected error on invalid url.")
     //}
-    backend, err = NewMongodbBackend(url, db)
+    mongo_backend, err = NewMongodbBackend(url, db)
     if err != nil {
         t.Fatalf("NewMongodbBackend error: %v", err)
     }
-    if backend.mongoURL != url {
+    if mongo_backend.mongoURL != url {
         t.Fatal("Url name.")
     }
-    if backend.database != db {
+    if mongo_backend.database != db {
         t.Fatal("DB not saved.")
     }
 }
@@ -63,7 +63,7 @@ func TestMongodbAuthorizer(t *testing.T) {
     roles := make(map[string]Role)
     roles["user"] = 40
     roles["admin"] = 80
-    _, err := NewAuthorizer(backend, []byte("testkey"), "user", roles)
+    _, err := NewAuthorizer(mongo_backend, []byte("testkey"), "user", roles)
     if err != nil {
         t.Fatal(err)
     }
@@ -71,12 +71,12 @@ func TestMongodbAuthorizer(t *testing.T) {
 
 func TestSaveUser_mongodb(t *testing.T) {
     user2 := UserData{"username2", "email2", []byte("passwordhash2"), "role2"}
-    if err := backend.SaveUser(user2); err != nil {
+    if err := mongo_backend.SaveUser(user2); err != nil {
         t.Fatalf("SaveUser mongodb error: %v", err)
     }
 
     user := UserData{"username", "email", []byte("passwordhash"), "role"}
-    if err := backend.SaveUser(user); err != nil {
+    if err := mongo_backend.SaveUser(user); err != nil {
         t.Fatalf("SaveUser mongodb error: %v", err)
     }
 }
@@ -104,7 +104,7 @@ func TestNewMongodbAuthBackend_existing(t *testing.T) {
 }
 
 func TestUser_existing_mongodb(t *testing.T) {
-    if user, err := backend.User("username"); err == nil {
+    if user, err := mongo_backend.User("username"); err == nil {
         if user.Username != "username" {
             t.Fatal("Username not correct.")
         }
@@ -117,7 +117,7 @@ func TestUser_existing_mongodb(t *testing.T) {
     } else {
         t.Fatalf("User not found: %v", err)
     }
-    if user, err := backend.User("username2"); err == nil {
+    if user, err := mongo_backend.User("username2"); err == nil {
         if user.Username != "username2" {
             t.Fatal("Username not correct.")
         }
@@ -133,7 +133,7 @@ func TestUser_existing_mongodb(t *testing.T) {
 }
 
 func TestUser_notexisting_mongodb(t *testing.T) {
-    if _, err := backend.User("notexist"); err != ErrMissingUser {
+    if _, err := mongo_backend.User("notexist"); err != ErrMissingUser {
         t.Fatalf("Not existing user found: %v", err)
     }
 }
@@ -143,7 +143,7 @@ func TestUsers_mongodb(t *testing.T) {
         u1 UserData
         u2 UserData
     )
-    users, err := backend.Users()
+    users, err := mongo_backend.Users()
     if err != nil {
         t.Fatal(err)
     }
@@ -182,10 +182,10 @@ func TestUsers_mongodb(t *testing.T) {
 
 func TestUpdateUser_mongodb(t *testing.T) {
     user2 := UserData{"username", "newemail", []byte("newpassword"), "newrole"}
-    if err := backend.SaveUser(user2); err != nil {
+    if err := mongo_backend.SaveUser(user2); err != nil {
         t.Fatalf("SaveUser mongodb error: %v", err)
     }
-    u2, err := backend.User("username")
+    u2, err := mongo_backend.User("username")
     if err != nil {
         t.Fatal("Updated user not found")
     }
@@ -204,10 +204,10 @@ func TestUpdateUser_mongodb(t *testing.T) {
 }
 
 func TestMongodbDeleteUser(t *testing.T) {
-    if err := backend.DeleteUser("username"); err != nil {
+    if err := mongo_backend.DeleteUser("username"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
-    err := backend.DeleteUser("username")
+    err := mongo_backend.DeleteUser("username")
     if err != ErrDeleteNull {
         t.Fatalf("DeleteUser should have raised ErrDeleteNull: %v", err)
     } else if err != ErrDeleteNull {
@@ -218,21 +218,21 @@ func TestMongodbDeleteUser(t *testing.T) {
 func TestMongodbReopen(t *testing.T) {
     var err error
 
-    backend.Close()
+    mongo_backend.Close()
 
-    backend, err = NewMongodbBackend(url, db)
+    mongo_backend, err = NewMongodbBackend(url, db)
     if err != nil {
         t.Fatal(err.Error())
     }
 
-    backend.Close()
+    mongo_backend.Close()
 
-    backend, err = NewMongodbBackend(url, db)
+    mongo_backend, err = NewMongodbBackend(url, db)
     if err != nil {
         t.Fatal(err.Error())
     }
 
-    users, err := backend.Users()
+    users, err := mongo_backend.Users()
     if err != nil {
         t.Fatal(err.Error())
     }
@@ -251,11 +251,11 @@ func TestMongodbReopen(t *testing.T) {
 }
 
 func TestMongodbDelete2(t *testing.T) {
-    if err := backend.DeleteUser("username2"); err != nil {
+    if err := mongo_backend.DeleteUser("username2"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
 }
 
 func TestMongodbClose(t *testing.T) {
-    backend.Close()
+    mongo_backend.Close()
 }
