@@ -2,6 +2,7 @@ package httpauth
 
 import (
     "database/sql"
+    "fmt"
 )
 
 // SqlAuthBackend database and database connection information.
@@ -52,23 +53,23 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e e
     // prepare statements
     b.userStmt, err = db.Prepare(`select Email, Hash, Role from goauth where Username = ?`)
     if err != nil {
-        return b, err
+        return b, fmt.Errorf("sqlbackend error: userstmt: %v", err)
     }
     b.usersStmt, err = db.Prepare(`select Username, Email, Hash, Role from goauth`)
     if err != nil {
-        return b, err
+        return b, fmt.Errorf("sqlbackend error: usersstmt: %v", err)
     }
     b.insertStmt, err = db.Prepare(`insert into goauth (Username, Email, Hash, Role) values (?, ?, ?, ?)`)
     if err != nil {
-        return b, err
+        return b, fmt.Errorf("sqlbackend error: insertstmt: %v", err)
     }
     b.updateStmt, err = db.Prepare(`update goauth set Email = ?, Hash = ?, Role = ? where Username = ?`)
     if err != nil {
-        return b, err
+        return b, fmt.Errorf("sqlbackend error: updatestmt: %v", err)
     }
     b.deleteStmt, err = db.Prepare(`delete from goauth where Username = ?`)
     if err != nil {
-        return b, err
+        return b, fmt.Errorf("sqlbackend error: deletestmt: %v", err)
     }
 
     return b, nil
