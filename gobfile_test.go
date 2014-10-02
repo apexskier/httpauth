@@ -43,10 +43,16 @@ func TestGobFileAuthorizer(t *testing.T) {
 
 func TestSaveUser(t *testing.T) {
     user := UserData{Username:"username", Email:"email", Hash:[]byte("passwordhash"), Role:"user"}
-    b.SaveUser(user)
+    err := b.SaveUser(user)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
 
     user2 := UserData{Username:"username2", Email:"email2", Hash:[]byte("passwordhash2"), Role:"user"}
-    b.SaveUser(user2)
+    err = b.SaveUser(user2)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
 
     if len(b.users) != 2 {
         t.Fatal("Users not added properly.")
@@ -80,31 +86,43 @@ func TestNewGobFileAuthBackend_existing(t *testing.T) {
         t.Fatal(err.Error())
     }
 
-    if len(b2.users) != 2 {
+    users, err := b2.Users()
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+    if len(users) != 2 {
         t.Error("Users not loaded.")
     }
-    if b2.users["username"].Username != "username" {
+    u1, err := b2.User("username")
+    if err != nil {
+        t.Fatalf("User 1 not found: %v", err)
+    }
+    if u1.Username != "username" {
         t.Error("Username not correct.")
     }
-    if b2.users["username"].Email != "email" {
+    if u1.Email != "email" {
         t.Error("User email not correct.")
     }
-    if !bytes.Equal(b2.users["username"].Hash, []byte("passwordhash")) {
+    if !bytes.Equal(u1.Hash, []byte("passwordhash")) {
         t.Error("User password not correct.")
     }
-    if b2.users["username2"].Username != "username2" {
+    u2, err := b2.User("username2")
+    if err != nil {
+        t.Fatalf("User 2 not found: %v", err)
+    }
+    if u2.Username != "username2" {
         t.Error("Username not correct.")
     }
-    if b2.users["username2"].Email != "email2" {
+    if u2.Email != "email2" {
         t.Error("User email not correct.")
     }
-    if !bytes.Equal(b2.users["username2"].Hash, []byte("passwordhash2")) {
+    if !bytes.Equal(u2.Hash, []byte("passwordhash2")) {
         t.Error("User password not correct.")
     }
 }
 
 func TestUser_existing(t *testing.T) {
-    if user, ok := b.User("username"); ok {
+    if user, err := b.User("username"); err == nil {
         if user.Username != "username" {
             t.Fatal("Username not correct.")
         }
@@ -123,8 +141,8 @@ func TestUser_existing(t *testing.T) {
 }
 
 func TestUser_notexisting(t *testing.T) {
-    if _, ok := b.User("notexist"); ok {
-        t.Fatal("Not existing user found.")
+    if _, err := b.User("notexist"); err != ErrMissingUser {
+        t.Fatalf("Not existing user found: %v", err)
     }
 }
 
@@ -178,9 +196,9 @@ func TestUpdateUser_gob(t *testing.T) {
     if err := b.SaveUser(user2); err != nil {
         t.Fatalf("SaveUser gob error: %v", err)
     }
-    u2, ok := b.User("username")
-    if !ok {
-        t.Fatal("Updated user not found")
+    u2, err := b.User("username")
+    if err != nil {
+        t.Fatalf("Updated user not found: %v", err)
     }
     if u2.Username != "username" {
         t.Fatal("Username not correct.")
@@ -200,8 +218,8 @@ func TestGobDeleteUser(t *testing.T) {
     if err := b.DeleteUser("username"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
-    if _, ok := b.User("username"); ok {
-        t.Fatal("DeleteUser: User not deleted")
+    if _, err := b.User("username"); err != ErrMissingUser {
+        t.Fatalf("DeleteUser: User not deleted: %v", err)
     }
     err := b.DeleteUser("username")
     if err != ErrDeleteNull {

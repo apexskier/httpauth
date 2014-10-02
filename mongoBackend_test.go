@@ -88,8 +88,8 @@ func TestNewMongodbAuthBackend_existing(t *testing.T) {
         t.Fatalf("NewMongodbBackend (existing) error: %v", err)
     }
 
-    user, ok := b2.User("username")
-    if !ok {
+    user, err := b2.User("username")
+    if err != nil {
         t.Fatal("Secondary backend failed")
     }
     if user.Username != "username" {
@@ -104,7 +104,7 @@ func TestNewMongodbAuthBackend_existing(t *testing.T) {
 }
 
 func TestUser_existing_mongodb(t *testing.T) {
-    if user, ok := backend.User("username"); ok {
+    if user, err := backend.User("username"); err == nil {
         if user.Username != "username" {
             t.Fatal("Username not correct.")
         }
@@ -115,9 +115,9 @@ func TestUser_existing_mongodb(t *testing.T) {
             t.Fatal("User password not correct.")
         }
     } else {
-        t.Fatal("User not found")
+        t.Fatalf("User not found: %v", err)
     }
-    if user, ok := backend.User("username2"); ok {
+    if user, err := backend.User("username2"); err == nil {
         if user.Username != "username2" {
             t.Fatal("Username not correct.")
         }
@@ -128,13 +128,13 @@ func TestUser_existing_mongodb(t *testing.T) {
             t.Fatal("User password not correct.")
         }
     } else {
-        t.Fatal("User not found")
+        t.Fatalf("User not found: %v", err)
     }
 }
 
 func TestUser_notexisting_mongodb(t *testing.T) {
-    if _, ok := backend.User("notexist"); ok {
-        t.Fatal("Not existing user found.")
+    if _, err := backend.User("notexist"); err != ErrMissingUser {
+        t.Fatalf("Not existing user found: %v", err)
     }
 }
 
@@ -185,8 +185,8 @@ func TestUpdateUser_mongodb(t *testing.T) {
     if err := backend.SaveUser(user2); err != nil {
         t.Fatalf("SaveUser mongodb error: %v", err)
     }
-    u2, ok := backend.User("username")
-    if !ok {
+    u2, err := backend.User("username")
+    if err != nil {
         t.Fatal("Updated user not found")
     }
     if u2.Username != "username" {

@@ -45,11 +45,11 @@ func NewGobFileAuthBackend(filepath string) (b GobFileAuthBackend, e error) {
 }
 
 // User returns the user with the given username.
-func (b GobFileAuthBackend) User(username string) (user UserData, ok bool) {
+func (b GobFileAuthBackend) User(username string) (user UserData, e error) {
     if user, ok := b.users[username]; ok {
-        return user, ok
+        return user, nil
     }
-    return user, false
+    return user, ErrMissingUser
 }
 
 // Users returns a slice of all users.
@@ -81,12 +81,14 @@ func (b GobFileAuthBackend) save() error {
 
 // DeleteUser removes a user, raising ErrDeleteNull if that user was missing.
 func (b GobFileAuthBackend) DeleteUser(username string) error {
-    if _, ok := b.User(username); !ok {
+    _, err := b.User(username)
+    if err == ErrMissingUser {
         return ErrDeleteNull
+    } else if err != nil {
+        return err
     }
     delete(b.users, username)
-    err := b.save()
-    return err
+    return b.save()
 }
 
 // Close cleans up the backend. Currently a no-op for gobfiles.

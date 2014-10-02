@@ -49,7 +49,7 @@ func NewMongodbBackend(mongoURL string, database string) (b MongodbAuthBackend, 
 }
 
 // User returns the user with the given username.
-func (b MongodbAuthBackend) User(username string) (user UserData, ok bool) {
+func (b MongodbAuthBackend) User(username string) (user UserData, e error) {
     var result UserData
 
     c := b.connect()
@@ -57,9 +57,9 @@ func (b MongodbAuthBackend) User(username string) (user UserData, ok bool) {
 
     err := c.Find(bson.M{"Username": username}).One(&result)
     if err != nil {
-        return result, false
+        return result, ErrMissingUser
     }
-    return result, true
+    return result, nil
 }
 
 // Users returns a slice of all users.

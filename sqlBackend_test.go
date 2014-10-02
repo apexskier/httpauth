@@ -85,8 +85,8 @@ func TestNewSqlAuthBackend_existing_mysql(t *testing.T) {
         t.Fatal(err.Error())
     }
 
-    user, ok := b2.User("username")
-    if !ok {
+    user, err := b2.User("username")
+    if err != nil {
         t.Fatal("Secondary backend failed")
     }
     if user.Username != "username" {
@@ -101,36 +101,36 @@ func TestNewSqlAuthBackend_existing_mysql(t *testing.T) {
 }
 
 func TestUser_existing_sql_mysql(t *testing.T) {
-    if user, ok := sb.User("username"); ok {
+    if user, err := sb.User("username"); err == nil {
         if user.Username != "username" {
-            t.Fatal("Username not correct.")
+            t.Error("Username not correct.")
         }
         if user.Email != "email" {
-            t.Fatal("User email not correct.")
+            t.Error("User email not correct.")
         }
         if !bytes.Equal(user.Hash, []byte("passwordhash")) {
-            t.Fatal("User password not correct.")
+            t.Error("User password not correct.")
         }
     } else {
-        t.Fatal("User not found")
+        t.Errorf("User not found: %v", err)
     }
-    if user, ok := sb.User("username2"); ok {
+    if user, err := sb.User("username2"); err == nil {
         if user.Username != "username2" {
-            t.Fatal("Username not correct.")
+            t.Error("Username not correct.")
         }
         if user.Email != "email2" {
-            t.Fatal("User email not correct.")
+            t.Error("User email not correct.")
         }
         if !bytes.Equal(user.Hash, []byte("passwordhash2")) {
-            t.Fatal("User password not correct.")
+            t.Error("User password not correct.")
         }
     } else {
-        t.Fatal("User not found")
+        t.Fatalf("User not found: %v", err)
     }
 }
 
 func TestUser_notexisting_sql_mysql(t *testing.T) {
-    if _, ok := sb.User("notexist"); ok {
+    if _, err := sb.User("notexist"); err != ErrMissingUser {
         t.Fatal("Not existing user found.")
     }
 }
@@ -182,8 +182,8 @@ func TestUpdateUser_sql_mysql(t *testing.T) {
     if err := sb.SaveUser(user2); err != nil {
         t.Fatalf("SaveUser sql error: %v", err)
     }
-    u2, ok := sb.User("username")
-    if !ok {
+    u2, err := sb.User("username")
+    if err != nil {
         t.Fatal("Updated user not found")
     }
     if u2.Username != "username" {
@@ -324,8 +324,8 @@ func TestNewSqlAuthBackend_existing_postgres(t *testing.T) {
         t.Fatal(err.Error())
     }
 
-    user, ok := b2.User("username")
-    if !ok {
+    user, err := b2.User("username")
+    if err != nil {
         t.Fatal("Secondary backend failed")
     }
     if user.Username != "username" {
@@ -340,7 +340,7 @@ func TestNewSqlAuthBackend_existing_postgres(t *testing.T) {
 }
 
 func TestUser_existing_sql_postgres(t *testing.T) {
-    if user, ok := sb.User("username"); ok {
+    if user, err := sb.User("username"); err != nil {
         if user.Username != "username" {
             t.Fatal("Username not correct.")
         }
@@ -353,7 +353,7 @@ func TestUser_existing_sql_postgres(t *testing.T) {
     } else {
         t.Fatal("User not found")
     }
-    if user, ok := sb.User("username2"); ok {
+    if user, err := sb.User("username2"); err != nil {
         if user.Username != "username2" {
             t.Fatal("Username not correct.")
         }
@@ -369,7 +369,7 @@ func TestUser_existing_sql_postgres(t *testing.T) {
 }
 
 func TestUser_notexisting_sql_postgres(t *testing.T) {
-    if _, ok := sb.User("notexist"); ok {
+    if _, err := sb.User("notexist"); err != ErrMissingUser {
         t.Fatal("Not existing user found.")
     }
 }
@@ -421,9 +421,9 @@ func TestUpdateUser_sql_postgres(t *testing.T) {
     if err := sb.SaveUser(user2); err != nil {
         t.Fatalf("SaveUser sql error: %v", err)
     }
-    u2, ok := sb.User("username")
-    if !ok {
-        t.Fatal("Updated user not found")
+    u2, err := sb.User("username")
+    if err != nil {
+        t.Fatalf("Updated user not found: %v", err)
     }
     if u2.Username != "username" {
         t.Fatal("Username not correct.")

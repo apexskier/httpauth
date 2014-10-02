@@ -29,6 +29,7 @@ import (
 // time of call.
 var (
     ErrDeleteNull = errors.New("deleting non-existant user")
+    ErrMissingUser = errors.New("can't find user")
 )
 
 // Role represents an interal role. Roles are essentially a string mapped to an
@@ -59,7 +60,7 @@ type Authorizer struct {
 // implement.
 type AuthBackend interface {
     SaveUser(u UserData) error
-    User(username string) (user UserData, ok bool)
+    User(username string) (user UserData, e error)
     Users() (users []UserData, e error)
     DeleteUser(username string) error
     Close()
@@ -114,7 +115,7 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
     if session.Values["username"] != nil {
         return errors.New("already authenticated")
     }
-    if user, ok := a.backend.User(u); ok {
+    if user, err := a.backend.User(u); err == nil {
         verify := bcrypt.CompareHashAndPassword(user.Hash, []byte(u+p))
         if verify != nil {
             a.addMessage(rw, req, "Invalid username or password.")
@@ -155,9 +156,12 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user Use
     }
 
     // Validate username
-    if _, ok := a.backend.User(user.Username); ok {
+    _, err := a.backend.User(user.Username)
+    if err == nil {
         a.addMessage(rw, req, "Username has been taken.")
         return errors.New("user already exists")
+    } else if err != ErrMissingUser {
+        return err
     }
 
     // Generate and save hash
@@ -194,10 +198,12 @@ func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, 
     if !ok {
         return errors.New("not logged in")
     }
-    user, ok := a.backend.User(username)
-    if !ok {
+    user, err := a.backend.User(username)
+    if err == ErrMissingUser {
         a.addMessage(rw, req, "User doesn't exist.")
         return errors.New("user doesn't exists")
+    } else if err != nil {
+        return err
     }
     if p != "" {
         hash, err = bcrypt.GenerateFromPassword([]byte(username+p), 8)
@@ -244,7 +250,8 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
     }*/
     username := authSession.Values["username"]
     if !authSession.IsNew && username != nil {
-        if _, ok := a.backend.User(username.(string)); !ok {
+        _, err := a.backend.User(username.(string))
+        if err == ErrMissingUser {
             authSession.Options.MaxAge = -1 // kill the cookie
             authSession.Save(req, rw)
             if redirectWithMessage {
@@ -252,6 +259,8 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
                 a.addMessage(rw, req, "Log in to do that.")
             }
             return errors.New("user not found")
+        } else if err != nil {
+            return err
         }
     }
     if username == nil {
@@ -276,7 +285,7 @@ func (a Authorizer) AuthorizeRole(rw http.ResponseWriter, req *http.Request, rol
     }
     authSession, _ := a.cookiejar.Get(req, "auth") // should I check err? I've already checked in call to Authorize
     username := authSession.Values["username"]
-    if user, ok := a.backend.User(username.(string)); ok {
+    if user, err := a.backend.User(username.(string)); err == nil {
         if a.roles[user.Role] >= r {
             return nil
         }
@@ -288,18 +297,17 @@ func (a Authorizer) AuthorizeRole(rw http.ResponseWriter, req *http.Request, rol
 
 // CurrentUser returns the currently logged in user and a boolean validating
 // the information.
-func (a Authorizer) CurrentUser(rw http.ResponseWriter, req *http.Request) (user UserData, ok bool) {
+func (a Authorizer) CurrentUser(rw http.ResponseWriter, req *http.Request) (user UserData, e error) {
     if err := a.Authorize(rw, req, false); err != nil {
-        return user, false
+        return user, err
     }
     authSession, _ := a.cookiejar.Get(req, "auth")
 
     username, ok := authSession.Values["username"].(string)
     if !ok {
-        return user, ok
+        return user, errors.New("User not found in authsession")
     }
-    user, ok = a.backend.User(username)
-    return user, ok
+    return a.backend.User(username)
 }
 
 // Logout clears an authentication session and add a logged out message.

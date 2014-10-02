@@ -54,11 +54,11 @@ func TestRegister(t *testing.T) {
     req, _ := http.NewRequest("POST", "/", nil)
     newUser := UserData{Username:"username", Email:"email@example.com"}
     err := a.Register(rw, req, newUser, "password")
+    if err != nil {
+        t.Fatalf("Register: %v", err)
+    }
     if rw.Code != http.StatusOK {
         t.Fatalf("Register: Wrong status code: %v", rw.Code)
-    }
-    if err != nil {
-        t.Fatalf("Register: error %v", err)
     }
 
     newUser2 := UserData{Username:"username", Email:"email@example.com", Role: "admin"}
