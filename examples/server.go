@@ -2,6 +2,7 @@ package main
 
 import (
     "net/http"
+    "code.google.com/p/go.crypto/bcrypt"
     "github.com/apexskier/httpauth"
     "github.com/gorilla/mux"
     "html/template"
@@ -20,16 +21,29 @@ var (
 
 func main() {
     var err error
+    // create the backend storage, remove when all done
     os.Create(backendfile)
     defer os.Remove(backendfile)
+
+    // create the backend
     backend, err = httpauth.NewGobFileAuthBackend(backendfile)
     if err != nil {
         panic(err)
     }
+
+    // create some default roles
     roles = make(map[string]httpauth.Role)
     roles["user"] = 30
     roles["admin"] = 80
     aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "user", roles)
+
+    // create a default user
+    hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), 8)
+    if err != nil {
+        panic(err)
+    }
+    defaultUser := httpauth.UserData{Username:"admin", Email:"admin@localhost", Hash:hash, Role:"admin"}
+    err = backend.SaveUser(defaultUser)
     if err != nil {
         panic(err)
     }
