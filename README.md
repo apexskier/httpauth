@@ -11,7 +11,10 @@ implemented relatively easily.
 
 - [File based](https://godoc.org/github.com/apexskier/goauth#NewGobFileAuthBackend) ([gob](http://golang.org/pkg/encoding/gob/))
 - [Various SQL Databases](https://godoc.org/github.com/apexskier/httpauth#NewSqlAuthBackend)
-- [MongoDB](https://godoc.org/github.com/apexskier/httpauth#NewMongodbBackend)
+  (tests for [MySQL](https://github.com/go-sql-driver/mysql),
+  [PostgresSQL](https://github.com/lib/pq),
+  [SQLite](https://github.com/mattn/go-sqlite3))
+- [MongoDB](https://godoc.org/github.com/apexskier/httpauth#NewMongodbBackend) ([mgo](http://gopkg.in/mgo.v2))
 
 Access can be restricted by a users' role.
 
@@ -21,11 +24,8 @@ hashing.
 Run `go run server.go` from the examples directory and visit `localhost:8009`
 for an example. You can login with the username and password "admin".
 
-Tests can be run by simulating Travis CI's build environment. A mysql database
-must be running on the default port with a user "travis" with no password and a
-database "httpauth_test". A mongodb database must be running with open access
-as well. There's a very unsafe script --- `start-test-env.sh` that will do this
-for you.
+Tests can be run by simulating Travis CI's build environment. There's a very
+unsafe script --- `start-test-env.sh` that will do this for you.
 
 **Note**
 
