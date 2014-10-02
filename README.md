@@ -40,3 +40,4 @@ know](https://github.com/Wombats/goauth/issues/new).
 - User roles - modification
 - SMTP email validation (key based)
 - More backends
+- Possible remove dependance on bcrypt
