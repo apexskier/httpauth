@@ -2,80 +2,90 @@ package httpauth
 
 import (
     "bytes"
-    "database/sql"
     "fmt"
-    _ "github.com/go-sql-driver/mysql"
     "os"
     "testing"
+    "gopkg.in/mgo.v2"
 )
 
 var (
-    sb         SqlAuthBackend
-    driverName = "mysql"
-    driverInfo = "travis@tcp(127.0.0.1:3306)/httpauth_test"
+    backend   MongodbAuthBackend
+    url     = "mongodb://127.0.0.1/"
+    db      = "test"
 )
 
-func TestSqlInit(t *testing.T) {
-    con, err := sql.Open(driverName, driverInfo)
+func TestMongodbInit(t *testing.T) {
+    con, err := mgo.Dial(url)
     if err != nil {
-        t.Errorf("Couldn't set up test sql database: %v", err)
-        fmt.Printf("Couldn't set up test sql database: %v\n", err)
+        t.Errorf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```", err)
+        fmt.Printf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```\n", err)
         os.Exit(1)
     }
+    defer con.Close()
     err = con.Ping()
     if err != nil {
-        t.Errorf("Couldn't ping test sql database: %v", err)
-        fmt.Printf("Couldn't ping test sql database: %v\n", err)
+        t.Errorf("Couldn't ping test mongodb database: %v", err)
+        fmt.Printf("Couldn't ping test mongodb database: %v\n", err)
         // t.Errorf("Couldn't ping test database: %v\n", err)
         os.Exit(1)
     }
-    con.Exec("drop table goauth")
-}
-
-func TestNewSqlAuthBackend(t *testing.T) {
-    var err error
-    _, err = NewSqlAuthBackend(driverName, driverName + "_test")
-    if err == nil {
-        t.Fatal("Expected error on invalid connection.")
-    }
-    sb, err = NewSqlAuthBackend(driverName, driverInfo)
+    database := con.DB(db)
+    err = database.DropDatabase()
     if err != nil {
-        t.Fatal(err.Error())
-    }
-    if sb.driverName != driverName {
-        t.Fatal("Driver name.")
-    }
-    if sb.dataSourceName != driverInfo {
-        t.Fatal("Driver info not saved.")
+        t.Errorf("Couldn't drop test mongodb database: %v", err)
+        fmt.Printf("Couldn't drop test mongodb database: %v\n", err)
+        // t.Errorf("Couldn't ping test database: %v\n", err)
+        os.Exit(1)
     }
 }
 
-func TestSqlAuthorizer(t *testing.T) {
+func TestNewMongodbAuthBackend(t *testing.T) {
+    var err error
+    // Note: the following takes 10 seconds. It really should be included, but
+    // I don't want to wait that long.
+    //_, err = NewMongodbBackend("mongodb://example.com.doesntexist", db)
+    //if err == nil {
+    //    t.Fatal("Expected error on invalid url.")
+    //}
+    backend, err = NewMongodbBackend(url, db)
+    if err != nil {
+        t.Fatalf("NewMongodbBackend error: %v", err)
+    }
+    if backend.mongoUrl != url {
+        t.Fatal("Url name.")
+    }
+    if backend.database != db {
+        t.Fatal("DB not saved.")
+    }
+}
+
+func TestMongodbAuthorizer(t *testing.T) {
     roles := make(map[string]Role)
     roles["user"] = 40
     roles["admin"] = 80
-    _, err := NewAuthorizer(sb, []byte("testkey"), "user", roles)
+    _, err := NewAuthorizer(backend, []byte("testkey"), "user", roles)
     if err != nil {
         t.Fatal(err)
     }
 }
 
-func TestSaveUser_sql(t *testing.T) {
+func TestSaveUser_mongodb(t *testing.T) {
     user2 := UserData{"username2", "email2", []byte("passwordhash2"), "role2"}
-    if err := sb.SaveUser(user2); err != nil {
-        t.Fatalf("SaveUser sql error: %v", err)
+    if err := backend.SaveUser(user2); err != nil {
+        t.Fatalf("SaveUser mongodb error: %v", err)
     }
 
     user := UserData{"username", "email", []byte("passwordhash"), "role"}
-    if err := sb.SaveUser(user); err != nil {
-        t.Fatalf("SaveUser sql error: %v", err)
+    if err := backend.SaveUser(user); err != nil {
+        t.Fatalf("SaveUser mongodb error: %v", err)
     }
 }
 
-func TestNewSqlAuthBackend_existing(t *testing.T) {
-    b2, err := NewSqlAuthBackend(driverName, driverInfo)
+func TestNewMongodbAuthBackend_existing(t *testing.T) {
+    var err error
+    b2, err := NewMongodbBackend(url, db)
     if err != nil {
-        t.Fatal(err.Error())
+        t.Fatalf("NewMongodbBackend (existing) error: %v", err)
     }
 
     user, ok := b2.User("username")
@@ -93,8 +103,8 @@ func TestNewSqlAuthBackend_existing(t *testing.T) {
     }
 }
 
-func TestUser_existing_sql(t *testing.T) {
-    if user, ok := sb.User("username"); ok {
+func TestUser_existing_mongodb(t *testing.T) {
+    if user, ok := backend.User("username"); ok {
         if user.Username != "username" {
             t.Fatal("Username not correct.")
         }
@@ -107,7 +117,7 @@ func TestUser_existing_sql(t *testing.T) {
     } else {
         t.Fatal("User not found")
     }
-    if user, ok := sb.User("username2"); ok {
+    if user, ok := backend.User("username2"); ok {
         if user.Username != "username2" {
             t.Fatal("Username not correct.")
         }
@@ -122,20 +132,20 @@ func TestUser_existing_sql(t *testing.T) {
     }
 }
 
-func TestUser_notexisting_sql(t *testing.T) {
-    if _, ok := sb.User("notexist"); ok {
+func TestUser_notexisting_mongodb(t *testing.T) {
+    if _, ok := backend.User("notexist"); ok {
         t.Fatal("Not existing user found.")
     }
 }
 
-func TestUsers_sql(t *testing.T) {
+func TestUsers_mongodb(t *testing.T) {
     var (
         u1 UserData
         u2 UserData
     )
-    users, err := sb.Users()
+    users, err := backend.Users()
     if err != nil {
-        t.Fatal(err.Error())
+        t.Fatal(err)
     }
     if len(users) != 2 {
         t.Fatal("Wrong amount of users found.")
@@ -170,12 +180,12 @@ func TestUsers_sql(t *testing.T) {
     }
 }
 
-func TestUpdateUser_sql(t *testing.T) {
+func TestUpdateUser_mongodb(t *testing.T) {
     user2 := UserData{"username", "newemail", []byte("newpassword"), "newrole"}
-    if err := sb.SaveUser(user2); err != nil {
-        t.Fatalf("SaveUser sql error: %v", err)
+    if err := backend.SaveUser(user2); err != nil {
+        t.Fatalf("SaveUser mongodb error: %v", err)
     }
-    u2, ok := sb.User("username")
+    u2, ok := backend.User("username")
     if !ok {
         t.Fatal("Updated user not found")
     }
@@ -193,36 +203,36 @@ func TestUpdateUser_sql(t *testing.T) {
     }
 }
 
-func TestSqlDeleteUser_sql(t *testing.T) {
-    if err := sb.DeleteUser("username"); err != nil {
+func TestMongodbDeleteUser(t *testing.T) {
+    if err := backend.DeleteUser("username"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
-    err := sb.DeleteUser("username")
-    if err == nil {
-        t.Fatalf("DeleteUser should have raised error")
+    err := backend.DeleteUser("username")
+    if err != ErrDeleteNull {
+        t.Fatalf("DeleteUser should have raised ErrDeleteNull: %v", err)
     } else if err != ErrDeleteNull {
         t.Fatalf("DeleteUser raised unexpected error: %v", err)
     }
 }
 
-func TestSqlReopen(t *testing.T) {
+func TestMongodbReopen(t *testing.T) {
     var err error
 
-    sb.Close()
+    backend.Close()
 
-    sb, err = NewSqlAuthBackend(driverName, driverInfo)
+    backend, err = NewMongodbBackend(url, db)
     if err != nil {
         t.Fatal(err.Error())
     }
 
-    sb.Close()
+    backend.Close()
 
-    sb, err = NewSqlAuthBackend(driverName, driverInfo)
+    backend, err = NewMongodbBackend(url, db)
     if err != nil {
         t.Fatal(err.Error())
     }
 
-    users, err := sb.Users()
+    users, err := backend.Users()
     if err != nil {
         t.Fatal(err.Error())
     }
@@ -240,12 +250,12 @@ func TestSqlReopen(t *testing.T) {
     }
 }
 
-func TestSqlDelete2(t *testing.T) {
-    if err := sb.DeleteUser("username2"); err != nil {
+func TestMongodbDelete2(t *testing.T) {
+    if err := backend.DeleteUser("username2"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
 }
 
-func TestSqlClose(t *testing.T) {
-    sb.Close()
+func TestMongodbClose(t *testing.T) {
+    backend.Close()
 }

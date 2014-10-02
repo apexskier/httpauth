@@ -6,6 +6,9 @@
 // Two user storage systems are currently implemented: file based (encoding/gob)
 // and sql databases (database/sql).
 //
+// Access can be restricted by a users' role. A higher role will give more
+// access.
+//
 // Users can be redirected to the page that triggered an authentication error.
 //
 // Messages describing the reason a user could not authenticate are saved in a
@@ -22,13 +25,24 @@ import (
     "net/http"
 )
 
-// UserData represents a single user. It contains the users username and email
-// as well as a has of their username and password.
+var (
+    ErrDeleteNull = errors.New("deleting non-existant user")
+    ErrMissingBackend = errors.New("missing backend")
+)
+
+// Role represents an interal role. Roles are essentially a string mapped to an
+// integer. Roles must be greater than zero.
+type Role int
+
+// UserData represents a single user. It contains the users username, email,
+// and role as well as a hash of their username and password. When creating
+// users, you should not specify a hash; it will be generated in the Register
+// and Update functions.
 type UserData struct {
-    Username string
-    Email    string
-    Hash     []byte
-    Role     string
+    Username string `bson:"Username"`
+    Email    string `bson:"Email"`
+    Hash     []byte `bson:"Hash"`
+    Role     string `bson:"Role"`
 }
 
 // Authorizer structures contain the store of user session cookies a reference
@@ -45,12 +59,13 @@ type Authorizer struct {
 type AuthBackend interface {
     SaveUser(u UserData) error
     User(username string) (user UserData, ok bool)
-    Users() (users []UserData)
+    Users() (users []UserData, e error)
     DeleteUser(username string) error
     SaveRole(name string, role Role) error
     Role(name string) (Role, ok bool)
     Roles() (roles map[string]Role)
     DeleteRole(name string) error
+    Close()
 }
 
 // Helper function to add a user directed message to a message queue.
@@ -69,8 +84,19 @@ func (a Authorizer) goBack(rw http.ResponseWriter, req *http.Request) {
     redirectSession.AddFlash(req.URL.Path)
 }
 
-// NewAuthorizer returns a new Authorizer given an AuthBackend and a cookie
-// store key.  If the key changes, logged in users will need to reauthenticate.
+// NewAuthorizer returns a new Authorizer given an AuthBackend, a cookie store
+// key, a default user role, and a map of roles. If the key changes, logged in
+// users will need to reauthenticate.
+//
+// Roles are a map of string to httpauth.Role values (integers). Higher Role values
+// have more access.
+//
+// Example roles:
+//
+//     var roles map[string]httpauth.Role
+//     roles["user"] = 2
+//     roles["admin"] = 4
+//     roles["moderator"] = 3
 func NewAuthorizer(backend AuthBackend, key []byte, defaultRole string, roles map[string]Role) (Authorizer, error) {
     var a Authorizer
     a.cookiejar = sessions.NewCookieStore([]byte(key))
@@ -114,6 +140,9 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 
 // Register and save a new user. Returns an error and adds a message if the
 // username is in use.
+//
+// Pass in a instance of UserData with at least a username and email specified. If no role
+// is given, the default one is used.
 func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user UserData, password string) error {
     if user.Username == "" {
         return errors.New("no username given")
@@ -141,8 +170,13 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user Use
     }
     user.Hash = hash
 
+    // Validate role
     if user.Role == "" {
         user.Role = a.defaultRole
+    } else {
+        if _, ok := a.roles[user.Role]; !ok {
+            return errors.New("non-existant role")
+        }
     }
 
     err = a.backend.SaveUser(user)
@@ -161,7 +195,7 @@ func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, 
     authSession, err := a.cookiejar.Get(req, "auth")
     username, ok := authSession.Values["username"].(string)
     if !ok {
-        return errors.New("Not logged in")
+        return errors.New("not logged in")
     }
     user, ok := a.backend.User(username)
     if !ok {
@@ -248,13 +282,11 @@ func (a Authorizer) AuthorizeRole(rw http.ResponseWriter, req *http.Request, rol
     if user, ok := a.backend.User(username.(string)); ok {
         if a.roles[user.Role] >= r {
             return nil
-        } else {
-            a.addMessage(rw, req, "You don't have sufficient privileges.")
-            return errors.New("user doesn't have high enough role")
         }
-    } else {
-        return errors.New("user not found")
+        a.addMessage(rw, req, "You don't have sufficient privileges.")
+        return errors.New("user doesn't have high enough role")
     }
+    return errors.New("user not found")
 }
 
 // CurrentUser returns the currently logged in user and a boolean validating
