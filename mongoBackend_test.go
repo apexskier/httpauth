@@ -209,8 +209,8 @@ func TestMongodbDeleteUser_mongodb(t *testing.T) {
         t.Fatalf("DeleteUser error: %v", err)
     }
     err := backend.DeleteUser("username")
-    if err == nil {
-        t.Fatalf("DeleteUser should have raised error")
+    if err != ErrDeleteNull {
+        t.Fatalf("DeleteUser should have raised ErrDeleteNull: %v", err)
     } else if err != ErrDeleteNull {
         t.Fatalf("DeleteUser raised unexpected error: %v", err)
     }
@@ -220,3 +220,6 @@ func TestMongodbDeleteUser_mongodb(t *testing.T) {
     }
 }
 
+func TestMongodbClose(t *testing.T) {
+    backend.Close()
+}

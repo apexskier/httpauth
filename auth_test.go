@@ -171,4 +171,7 @@ func TestDeleteUser(t *testing.T) {
     if err := a.DeleteUser("username"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
+    if err := a.DeleteUser("username"); err != ErrDeleteNull {
+        t.Fatalf("DeleteUser should have returned ErrDeleteNull: %v", err)
+    }
 }
