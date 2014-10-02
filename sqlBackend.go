@@ -3,6 +3,7 @@ package httpauth
 import (
     "database/sql"
     "fmt"
+    "os"
 )
 
 // SqlAuthBackend database and database connection information.
@@ -36,6 +37,11 @@ type SqlAuthBackend struct {
 func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e error) {
     b.driverName = driverName
     b.dataSourceName = dataSourceName
+    if driverName == "sqlite3" {
+        if _, err := os.Stat(dataSourceName); os.IsNotExist(err) {
+            return b, ErrMissingBackend
+        }
+    }
     db, err := sql.Open(driverName, dataSourceName)
     if err != nil {
         return b, err

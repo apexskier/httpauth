@@ -29,7 +29,7 @@ func testSqlInit(t *testing.T, driver string, info string) {
 
 func testSqlBackend(t *testing.T, driver string, info string) {
     var err error
-    _, err = NewSqlAuthBackend(driver, driver + "_test")
+    _, err = NewSqlAuthBackend(driver, info + "_fail")
     if err == nil {
         t.Fatal("Expected error on invalid connection.")
     }
@@ -83,4 +83,13 @@ func TestMysqlBackend(t *testing.T) {
 //
 func TestPostgresBackend(t *testing.T) {
     sqlTests(t, "postgres", "user=postgres password='' dbname=httpauth_test sslmode=disable")
+}
+
+//
+// sqlite3 tests
+//
+func TestSqliteBackend(t *testing.T) {
+    os.Create("./httpauth_test_sqlite.db")
+    sqlTests(t, "sqlite3", "./httpauth_test_sqlite.db")
+    os.Remove("./httpauth_test_sqlite.db")
 }
