@@ -81,25 +81,25 @@ func TestNewGobFileAuthBackend_existing(t *testing.T) {
     }
 
     if len(b2.users) != 2 {
-        t.Fatal("Users not loaded.")
+        t.Error("Users not loaded.")
     }
     if b2.users["username"].Username != "username" {
-        t.Fatal("Username not correct.")
+        t.Error("Username not correct.")
     }
     if b2.users["username"].Email != "email" {
-        t.Fatal("User email not correct.")
+        t.Error("User email not correct.")
     }
     if !bytes.Equal(b2.users["username"].Hash, []byte("passwordhash")) {
-        t.Fatal("User password not correct.")
+        t.Error("User password not correct.")
     }
     if b2.users["username2"].Username != "username2" {
-        t.Fatal("Username not correct.")
+        t.Error("Username not correct.")
     }
     if b2.users["username2"].Email != "email2" {
-        t.Fatal("User email not correct.")
+        t.Error("User email not correct.")
     }
     if !bytes.Equal(b2.users["username2"].Hash, []byte("passwordhash2")) {
-        t.Fatal("User password not correct.")
+        t.Error("User password not correct.")
     }
 }
 
@@ -211,7 +211,34 @@ func TestGobDeleteUser(t *testing.T) {
     }
 }
 
-func TestGobClose(t *testing.T) {
+func TestGobReopen(t *testing.T) {
+    b.Close()
+    b, err := NewGobFileAuthBackend(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+    b.Close()
+
+    b, err = NewGobFileAuthBackend(file)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+
+    if len(b.users) != 1 {
+        t.Error("Users not loaded.")
+    }
+    if b.users["username2"].Username != "username2" {
+        t.Error("Username not correct.")
+    }
+    if b.users["username2"].Email != "email2" {
+        t.Error("User email not correct.")
+    }
+    if !bytes.Equal(b.users["username2"].Hash, []byte("passwordhash2")) {
+        t.Error("User password not correct.")
+    }
+}
+
+func TestGobReclose(t *testing.T) {
     b.Close()
     err := os.Remove(file)
     if err != nil {

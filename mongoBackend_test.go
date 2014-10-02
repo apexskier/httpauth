@@ -6,7 +6,6 @@ import (
     "os"
     "testing"
     "gopkg.in/mgo.v2"
-    //"gopkg.in/mgo.v2/bson"
 )
 
 var (
@@ -17,12 +16,12 @@ var (
 
 func TestMongodbInit(t *testing.T) {
     con, err := mgo.Dial(url)
-    defer con.Close()
     if err != nil {
         t.Errorf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```", err)
         fmt.Printf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```\n", err)
         os.Exit(1)
     }
+    defer con.Close()
     err = con.Ping()
     if err != nil {
         t.Errorf("Couldn't ping test mongodb database: %v", err)
@@ -204,7 +203,7 @@ func TestUpdateUser_mongodb(t *testing.T) {
     }
 }
 
-func TestMongodbDeleteUser_mongodb(t *testing.T) {
+func TestMongodbDeleteUser(t *testing.T) {
     if err := backend.DeleteUser("username"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
@@ -214,7 +213,44 @@ func TestMongodbDeleteUser_mongodb(t *testing.T) {
     } else if err != ErrDeleteNull {
         t.Fatalf("DeleteUser raised unexpected error: %v", err)
     }
+}
 
+func TestMongodbReopen(t *testing.T) {
+    var err error
+
+    backend.Close()
+
+    backend, err = NewMongodbBackend(url, db)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+
+    backend.Close()
+
+    backend, err = NewMongodbBackend(url, db)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+
+    users, err := backend.Users()
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+    if len(users) != 1 {
+        t.Error("Users not loaded.")
+    }
+    if users[0].Username != "username2" {
+        t.Error("Username not correct.")
+    }
+    if users[0].Email != "email2" {
+        t.Error("User email not correct.")
+    }
+    if !bytes.Equal(users[0].Hash, []byte("passwordhash2")) {
+        t.Error("User password not correct.")
+    }
+}
+
+func TestMongodbDelete2(t *testing.T) {
     if err := backend.DeleteUser("username2"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }

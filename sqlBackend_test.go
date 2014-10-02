@@ -203,7 +203,44 @@ func TestSqlDeleteUser_sql(t *testing.T) {
     } else if err != ErrDeleteNull {
         t.Fatalf("DeleteUser raised unexpected error: %v", err)
     }
+}
 
+func TestSqlReopen(t *testing.T) {
+    var err error
+
+    sb.Close()
+
+    sb, err = NewSqlAuthBackend(driverName, driverInfo)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+
+    sb.Close()
+
+    sb, err = NewSqlAuthBackend(driverName, driverInfo)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+
+    users, err := sb.Users()
+    if err != nil {
+        t.Fatal(err.Error())
+    }
+    if len(users) != 1 {
+        t.Error("Users not loaded.")
+    }
+    if users[0].Username != "username2" {
+        t.Error("Username not correct.")
+    }
+    if users[0].Email != "email2" {
+        t.Error("User email not correct.")
+    }
+    if !bytes.Equal(users[0].Hash, []byte("passwordhash2")) {
+        t.Error("User password not correct.")
+    }
+}
+
+func TestSqlDelete2(t *testing.T) {
     if err := sb.DeleteUser("username2"); err != nil {
         t.Fatalf("DeleteUser error: %v", err)
     }
