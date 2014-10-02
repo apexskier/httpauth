@@ -50,26 +50,56 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e e
         return b, err
     }
 
-    // prepare statements
-    b.userStmt, err = db.Prepare(`select Email, Hash, Role from goauth where Username = ?`)
-    if err != nil {
-        return b, fmt.Errorf("sqlbackend error: userstmt: %v", err)
-    }
-    b.usersStmt, err = db.Prepare(`select Username, Email, Hash, Role from goauth`)
-    if err != nil {
-        return b, fmt.Errorf("sqlbackend error: usersstmt: %v", err)
-    }
-    b.insertStmt, err = db.Prepare(`insert into goauth (Username, Email, Hash, Role) values (?, ?, ?, ?)`)
-    if err != nil {
-        return b, fmt.Errorf("sqlbackend error: insertstmt: %v", err)
-    }
-    b.updateStmt, err = db.Prepare(`update goauth set Email = ?, Hash = ?, Role = ? where Username = ?`)
-    if err != nil {
-        return b, fmt.Errorf("sqlbackend error: updatestmt: %v", err)
-    }
-    b.deleteStmt, err = db.Prepare(`delete from goauth where Username = ?`)
-    if err != nil {
-        return b, fmt.Errorf("sqlbackend error: deletestmt: %v", err)
+    // prepare statements for concurrent use and better preformance
+    //
+    // NOTE:
+    // I don't want to have to check if it's postgres, but postgres uses
+    // different tokens for placeholders. :( Also be aware that postgres
+    // lowercases all these column names.
+    //
+    // Thanks to mjhall for letting me know about this.
+    if driverName == "postgres" {
+        b.userStmt, err = db.Prepare(`select Email, Hash, Role from goauth where Username = $1`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: userstmt: %v", err)
+        }
+        b.usersStmt, err = db.Prepare(`select Username, Email, Hash, Role from goauth`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: usersstmt: %v", err)
+        }
+        b.insertStmt, err = db.Prepare(`insert into goauth (Username, Email, Hash, Role) values ($1, $2, $3, $4)`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: insertstmt: %v", err)
+        }
+        b.updateStmt, err = db.Prepare(`update goauth set Email = $1, Hash = $2, Role = $3 where Username = $4`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: updatestmt: %v", err)
+        }
+        b.deleteStmt, err = db.Prepare(`delete from goauth where Username = $1`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: deletestmt: %v", err)
+        }
+    } else {
+        b.userStmt, err = db.Prepare(`select Email, Hash, Role from goauth where Username = ?`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: userstmt: %v", err)
+        }
+        b.usersStmt, err = db.Prepare(`select Username, Email, Hash, Role from goauth`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: usersstmt: %v", err)
+        }
+        b.insertStmt, err = db.Prepare(`insert into goauth (Username, Email, Hash, Role) values (?, ?, ?, ?)`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: insertstmt: %v", err)
+        }
+        b.updateStmt, err = db.Prepare(`update goauth set Email = ?, Hash = ?, Role = ? where Username = ?`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: updatestmt: %v", err)
+        }
+        b.deleteStmt, err = db.Prepare(`delete from goauth where Username = ?`)
+        if err != nil {
+            return b, fmt.Errorf("sqlbackend error: deletestmt: %v", err)
+        }
     }
 
     return b, nil
