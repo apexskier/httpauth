@@ -27,6 +27,7 @@ import (
 
 // ErrDeleteNull is returned by DeleteUser when that user didn't exist at the
 // time of call.
+// ErrMissingUser is returned by Users when a user is not found.
 var (
     ErrDeleteNull = errors.New("deleting non-existant user")
     ErrMissingUser = errors.New("can't find user")

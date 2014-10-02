@@ -74,7 +74,8 @@ func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e e
     return b, nil
 }
 
-// User returns the user with the given username.
+// User returns the user with the given username. Error is set to
+// ErrMissingUser if user is not found.
 func (b SqlAuthBackend) User(username string) (user UserData, e error) {
     row := b.userStmt.QueryRow(username)
     err := row.Scan(&user.Email, &user.Hash, &user.Role)

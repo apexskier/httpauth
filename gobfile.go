@@ -44,7 +44,8 @@ func NewGobFileAuthBackend(filepath string) (b GobFileAuthBackend, e error) {
     return b, nil
 }
 
-// User returns the user with the given username.
+// User returns the user with the given username. Error is set to
+// ErrMissingUser if user is not found.
 func (b GobFileAuthBackend) User(username string) (user UserData, e error) {
     if user, ok := b.users[username]; ok {
         return user, nil

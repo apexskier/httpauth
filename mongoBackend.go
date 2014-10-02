@@ -48,7 +48,8 @@ func NewMongodbBackend(mongoURL string, database string) (b MongodbAuthBackend, 
     return
 }
 
-// User returns the user with the given username.
+// User returns the user with the given username. Error is set to
+// ErrMissingUser if user is not found.
 func (b MongodbAuthBackend) User(username string) (user UserData, e error) {
     var result UserData
 
