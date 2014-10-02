@@ -56,10 +56,10 @@ func (b SqlAuthBackend) User(username string) (user UserData, ok bool) {
 }
 
 // Users returns a slice of all users.
-func (b SqlAuthBackend) Users() (us []UserData) {
+func (b SqlAuthBackend) Users() (us []UserData, e error) {
     rows, err := b.db.Query("select Username, Email, Hash, Role from goauth")
     if err != nil {
-        panic(err)
+        return us, err
     }
     var (
         username, email, role string
@@ -68,11 +68,11 @@ func (b SqlAuthBackend) Users() (us []UserData) {
     for rows.Next() {
         err = rows.Scan(&username, &email, &hash, &role)
         if err != nil {
-            panic(err)
+            return us, err
         }
         us = append(us, UserData{username, email, hash, role})
     }
-    return
+    return us, nil
 }
 
 // SaveUser adds a new user, replacing one with the same username.
@@ -103,8 +103,5 @@ func (b SqlAuthBackend) DeleteUser(username string) error {
 
 // Close cleans up the backend by terminating the database connection.
 func (b SqlAuthBackend) Close() {
-    err := b.db.Close()
-    if err != nil {
-        panic(err)
-    }
+    b.db.Close()
 }

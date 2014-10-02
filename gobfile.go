@@ -46,7 +46,7 @@ func (b GobFileAuthBackend) User(username string) (user UserData, ok bool) {
 }
 
 // Users returns a slice of all users.
-func (b GobFileAuthBackend) Users() (us []UserData) {
+func (b GobFileAuthBackend) Users() (us []UserData, e error) {
     for _, user := range b.users {
         us = append(us, user)
     }

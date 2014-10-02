@@ -31,6 +31,16 @@ func TestNewGobFileAuthBackend(t *testing.T) {
     }
 }
 
+func TestGobFileAuthorizer(t *testing.T) {
+    roles := make(map[string]Role)
+    roles["user"] = 40
+    roles["admin"] = 80
+    _, err := NewAuthorizer(b, []byte("testkey"), "user", roles)
+    if err != nil {
+        t.Fatal(err)
+    }
+}
+
 func TestSaveUser(t *testing.T) {
     user := UserData{Username:"username", Email:"email", Hash:[]byte("passwordhash"), Role:"user"}
     b.SaveUser(user)
@@ -123,7 +133,10 @@ func TestUsers(t *testing.T) {
         u1 UserData
         u2 UserData
     )
-    users := b.Users()
+    users, err := b.Users()
+    if err != nil {
+        t.Fatal(err.Error())
+    }
     if len(users) != 2 {
         t.Fatal("Wrong amount of users found.")
     }

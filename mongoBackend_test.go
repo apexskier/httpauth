@@ -53,6 +53,16 @@ func TestNewMongodbAuthBackend(t *testing.T) {
     }
 }
 
+func TestMongodbAuthorizer(t *testing.T) {
+    roles := make(map[string]Role)
+    roles["user"] = 40
+    roles["admin"] = 80
+    _, err := NewAuthorizer(backend, []byte("testkey"), "user", roles)
+    if err != nil {
+        t.Fatal(err)
+    }
+}
+
 func TestSaveUser_mongodb(t *testing.T) {
     user2 := UserData{"username2", "email2", []byte("passwordhash2"), "role2"}
     if err := backend.SaveUser(user2); err != nil {
@@ -126,7 +136,10 @@ func TestUsers_mongodb(t *testing.T) {
         u1 UserData
         u2 UserData
     )
-    users := backend.Users()
+    users, err := backend.Users()
+    if err != nil {
+        t.Fatal(err)
+    }
     if len(users) != 2 {
         t.Fatal("Wrong amount of users found.")
     }

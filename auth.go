@@ -59,7 +59,7 @@ type Authorizer struct {
 type AuthBackend interface {
     SaveUser(u UserData) error
     User(username string) (user UserData, ok bool)
-    Users() (users []UserData)
+    Users() (users []UserData, e error)
     DeleteUser(username string) error
     Close()
 }

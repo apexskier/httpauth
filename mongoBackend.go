@@ -3,9 +3,7 @@ package httpauth
 import (
     "gopkg.in/mgo.v2"
     "gopkg.in/mgo.v2/bson"
-    "fmt"
 )
-
 
 // MongodbAuthBackend stores database connection information.
 type MongodbAuthBackend struct {
@@ -61,18 +59,15 @@ func (b MongodbAuthBackend) User(username string) (user UserData, ok bool) {
 }
 
 // Users returns a slice of all users.
-func (b MongodbAuthBackend) Users() (us []UserData) {
-    var results []UserData
-
+func (b MongodbAuthBackend) Users() (us []UserData, e error) {
     c := b.connect()
     defer c.Database.Session.Close()
 
-    err := c.Find(bson.M{}).All(&results)
+    err := c.Find(bson.M{}).All(&us)
     if err != nil {
-        // TODO: Remove
-        fmt.Printf("got an error finding a doc %v\n")
+        return us, err
     }
-    return results
+    return
 }
 
 // SaveUser adds a new user, replacing if the same username is in use.
