@@ -19,3 +19,12 @@ before_script:
 
 services:
     - mongodb
+
+
+before_install:
+    - go get github.com/axw/gocov/gocov
+    - go get github.com/mattn/goveralls
+    - go get code.google.com/p/go.tools/cmd/cover
+
+script:
+    - $HOME/gopath/bin/goveralls -repotoken HQ2GKw3BZ02GdvxTWqMKVZ68iKBdE5OLR
