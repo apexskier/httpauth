@@ -7,7 +7,7 @@ import (
 
 // MongodbAuthBackend stores database connection information.
 type MongodbAuthBackend struct {
-    mongoUrl string
+    mongoURL string
     database string
     session  *mgo.Session
 }
@@ -17,16 +17,16 @@ func (b MongodbAuthBackend) connect() *mgo.Collection {
     return session.DB(b.database).C("goauth")
 }
 
-// NewMongodbAuthBackend initializes a new backend.
+// NewMongodbBackend initializes a new backend.
 // Be sure to call Close() on this to clean up the mongodb connection.
 // Example:
 //     backend = httpauth.MongodbAuthBackend("mongodb://127.0.0.1/", "auth")
 //     defer backend.Close()
-func NewMongodbBackend(mongoUrl string, database string) (b MongodbAuthBackend, e error) {
+func NewMongodbBackend(mongoURL string, database string) (b MongodbAuthBackend, e error) {
     // Set up connection to database
-    b.mongoUrl = mongoUrl
+    b.mongoURL = mongoURL
     b.database = database
-    session, err := mgo.Dial(b.mongoUrl)
+    session, err := mgo.Dial(b.mongoURL)
     if err != nil {
         return b, err
     }

@@ -51,7 +51,7 @@ func TestNewMongodbAuthBackend(t *testing.T) {
     if err != nil {
         t.Fatalf("NewMongodbBackend error: %v", err)
     }
-    if backend.mongoUrl != url {
+    if backend.mongoURL != url {
         t.Fatal("Url name.")
     }
     if backend.database != db {

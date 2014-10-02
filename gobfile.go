@@ -7,6 +7,13 @@ import (
     "fmt"
 )
 
+// ErrMissingBackend is returned by NewGobFileAuthBackend when the file doesn't
+// exist. Be sure to create (or touch) it if using brand new backend or
+// resetting backend.
+var (
+    ErrMissingBackend = errors.New("missing backend")
+)
+
 // GobFileAuthBackend stores user data and the location of the gob file.
 type GobFileAuthBackend struct {
     filepath string
@@ -15,7 +22,7 @@ type GobFileAuthBackend struct {
 
 // NewGobFileAuthBackend initializes a new backend by loading a map of users
 // from a file.
-// If the file doesn't exist, returns ErrMissingBackend.
+// If the file doesn't exist, returns an error.
 func NewGobFileAuthBackend(filepath string) (b GobFileAuthBackend, e error) {
     b.filepath = filepath
     if _, err := os.Stat(b.filepath); err == nil {
