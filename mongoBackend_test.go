@@ -7,16 +7,10 @@ import (
     "gopkg.in/mgo.v2"
 )
 
-var (
-    url     = "mongodb://127.0.0.1/"
-    db      = "test"
-)
-
 func TestMongodbInit(t *testing.T) {
-    con, err := mgo.Dial(url)
+    con, err := mgo.Dial("mongodb://127.0.0.1/")
     if err != nil {
-        t.Errorf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```", err)
-        fmt.Printf("Couldn't set up test mongodb session: %v\nHave you started the mongo db?\n```\n$ mongod --dbpath mongodbtest/\n```\n", err)
+        fmt.Printf("Couldn't set up test mongodb session: %v\n", err)
         os.Exit(1)
     }
     defer con.Close()
@@ -27,7 +21,7 @@ func TestMongodbInit(t *testing.T) {
         // t.Errorf("Couldn't ping test database: %v\n", err)
         os.Exit(1)
     }
-    database := con.DB(db)
+    database := con.DB("httpauth_test")
     err = database.DropDatabase()
     if err != nil {
         t.Errorf("Couldn't drop test mongodb database: %v", err)
@@ -44,14 +38,18 @@ func TestNewMongodbAuthBackend(t *testing.T) {
     //if err == nil {
     //    t.Fatal("Expected error on invalid url.")
     //}
-    mongo_backend, err := NewMongodbBackend(url, db)
+    mongo_backend, err := NewMongodbBackend("mongodb://doesn'texist/", "httpauth_test")
+    if err == nil {
+        t.Fatalf("expected NewMongodbBackend error")
+    }
+    mongo_backend, err = NewMongodbBackend("mongodb://127.0.0.1/", "httpauth_test")
     if err != nil {
         t.Fatalf("NewMongodbBackend error: %v", err)
     }
-    if mongo_backend.mongoURL != url {
+    if mongo_backend.mongoURL != "mongodb://127.0.0.1/" {
         t.Error("Url name.")
     }
-    if mongo_backend.database != db {
+    if mongo_backend.database != "httpauth_test" {
         t.Error("DB not saved.")
     }
 
@@ -59,14 +57,12 @@ func TestNewMongodbAuthBackend(t *testing.T) {
 }
 
 func TestMongodbReopen(t *testing.T) {
-    mongo_backend, err := NewMongodbBackend(url, db)
+    mongo_backend, err := NewMongodbBackend("mongodb://127.0.0.1/", "httpauth_test")
     if err != nil {
         t.Fatal(err.Error())
     }
-
     mongo_backend.Close()
-
-    mongo_backend, err = NewMongodbBackend(url, db)
+    mongo_backend, err = NewMongodbBackend("mongodb://127.0.0.1/", "httpauth_test")
     if err != nil {
         t.Fatal(err.Error())
     }
