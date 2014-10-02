@@ -158,22 +158,22 @@ func TestUsers_sql_mysql(t *testing.T) {
     }
 
     if u1.Username != "username" {
-        t.Fatal("Username not correct.")
+        t.Error("Username not correct.")
     }
     if u1.Email != "email" {
-        t.Fatal("User email not correct.")
+        t.Error("User email not correct.")
     }
     if !bytes.Equal(u1.Hash, []byte("passwordhash")) {
-        t.Fatal("User password not correct.")
+        t.Error("User password not correct.")
     }
     if u2.Username != "username2" {
-        t.Fatal("Username not correct.")
+        t.Error("Username not correct.")
     }
     if u2.Email != "email2" {
-        t.Fatal("User email not correct.")
+        t.Error("User email not correct.")
     }
     if !bytes.Equal(u2.Hash, []byte("passwordhash2")) {
-        t.Fatal("User password not correct.")
+        t.Error("User password not correct.")
     }
 }
 

@@ -9,6 +9,7 @@ install:
     - go get github.com/gorilla/sessions
     - go get github.com/go-sql-driver/mysql
     - go get gopkg.in/mgo.v2
+    - go get github.com/lib/pq
 
 before_script:
     - mysql -e 'create database httpauth_test;'
