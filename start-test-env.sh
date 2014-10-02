@@ -21,14 +21,15 @@ createdb httpauth_test >/dev/null 2>/dev/null
 
 function ctrl_c() {
     echo "shutting down databases"
-    kill -15 $mongopid
-    kill -15 $mysqlpid
-    kill -15 $postgrespid
+    kill -15 $mongopid 2>/dev/null
+    kill -15 $mysqlpid 2>/dev/null
+    kill -15 $postgrespid 2>/dev/null
 
-    rm -rf mongodbtest pgdbtest
+    rm -rf mongodbtest pgdbtest auth_test.gob
+    exit 0
 }
 trap ctrl_c INT
 
-echo "press ctrl-c to quit"
+echo "ready to test... press ctrl-c to quit"
 # wait forever
 cat
