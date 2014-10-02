@@ -41,10 +41,17 @@ func TestMongodbInit(t *testing.T) {
 }
 
 func TestNewMongodbAuthBackend(t *testing.T) {
-    backend = NewMongodbBackend(url, db)
-    //if err != nil {
-    //    t.Fatalf("NewMongodbBackend error: %v", err)
+    var err error
+    // Note: the following takes 10 seconds. It really should be included, but
+    // I don't want to wait that long.
+    //_, err = NewMongodbBackend("mongodb://example.com.doesntexist", db)
+    //if err == nil {
+    //    t.Fatal("Expected error on invalid url.")
     //}
+    backend, err = NewMongodbBackend(url, db)
+    if err != nil {
+        t.Fatalf("NewMongodbBackend error: %v", err)
+    }
     if backend.mongoUrl != url {
         t.Fatal("Url name.")
     }
@@ -76,10 +83,11 @@ func TestSaveUser_mongodb(t *testing.T) {
 }
 
 func TestNewMongodbAuthBackend_existing(t *testing.T) {
-    b2 := NewMongodbBackend(url, db)
-    //if err != nil {
-    //    t.Fatalf("NewMongodbBackend (existing) error: %v", err)
-    //}
+    var err error
+    b2, err := NewMongodbBackend(url, db)
+    if err != nil {
+        t.Fatalf("NewMongodbBackend (existing) error: %v", err)
+    }
 
     user, ok := b2.User("username")
     if !ok {

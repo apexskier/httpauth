@@ -22,13 +22,17 @@ func (b MongodbAuthBackend) connect() *mgo.Collection {
 // Example:
 //     backend = httpauth.MongodbAuthBackend("mongodb://127.0.0.1/", "auth")
 //     defer backend.Close()
-func NewMongodbBackend(mongoUrl string, database string) (b MongodbAuthBackend) {
+func NewMongodbBackend(mongoUrl string, database string) (b MongodbAuthBackend, e error) {
     // Set up connection to database
     b.mongoUrl = mongoUrl
     b.database = database
     session, err := mgo.Dial(b.mongoUrl)
     if err != nil {
-        panic(err)
+        return b, err
+    }
+    err = session.Ping()
+    if err != nil {
+        return b, err
     }
 
     // Ensure that the Username field is unique
@@ -38,7 +42,7 @@ func NewMongodbBackend(mongoUrl string, database string) (b MongodbAuthBackend) 
     }
     err = session.DB(b.database).C("goauth").EnsureIndex(index)
     if err != nil {
-        panic(err)
+        return b, err
     }
     b.session = session
     return
