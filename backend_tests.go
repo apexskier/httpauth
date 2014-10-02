@@ -171,6 +171,7 @@ func TestBackend(t *testing.T, backend AuthBackend) {
     TestBackendClose(t, backend)
 }
 
+
 func TestAfterReopen(t *testing.T, backend AuthBackend) {
     users, err := backend.Users()
     if err != nil {
@@ -199,7 +200,6 @@ func TestDelete2(t *testing.T, backend AuthBackend) {
 func TestClose2(t *testing.T, backend AuthBackend) {
     backend.Close()
 }
-
 
 func TestBackend2(t *testing.T, backend AuthBackend) {
     TestAfterReopen(t, backend)
