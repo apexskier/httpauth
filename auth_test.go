@@ -17,10 +17,6 @@ var (
 )
 
 func init() {
-    _, err := os.Create(file)
-    if err != nil {
-        panic(err)
-    }
     roles := make(map[string]Role)
     roles["user"] = 40
     roles["admin"] = 80
@@ -34,10 +30,14 @@ func init() {
 }
 
 func TestNewAuthorizer(t *testing.T) {
+    if _, err := os.Create(file); err != nil {
+        t.Fatal(err.Error())
+    }
+
     var err error
     b, err = NewGobFileAuthBackend(file)
     if err != nil {
-        t.Fatalf(err.Error())
+        t.Fatal(err.Error())
     }
 
     roles := make(map[string]Role)
@@ -45,7 +45,7 @@ func TestNewAuthorizer(t *testing.T) {
     roles["admin"] = 80
     a, err = NewAuthorizer(b, []byte("testkey"), "user", roles)
     if err != nil {
-        t.Fatalf(err.Error())
+        t.Fatal(err.Error())
     }
 }
 
@@ -67,7 +67,7 @@ func TestRegister(t *testing.T) {
         t.Fatalf("Register: Wrong status code: %v", rw.Code)
     }
     if err == nil {
-        t.Fatalf("Register: User registered with duplicate name")
+        t.Fatal("Register: User registered with duplicate name")
     }
     if em := err.Error(); em != "user already exists" {
         t.Fatalf("Register: %v", em)
@@ -82,7 +82,7 @@ func TestLogin(t *testing.T) {
     rw := httptest.NewRecorder()
     req, _ := http.NewRequest("POST", "/", nil)
     if err := a.Login(rw, req, "username", "wrongpassword", "/redirect"); err == nil {
-        t.Fatalf("Login: Logged in with incorrect password.")
+        t.Fatal("Login: Logged in with incorrect password.")
     }
     headers := rw.Header()
     if cookies := headers.Get("Set-Cookie"); cookies == "" {
@@ -91,7 +91,7 @@ func TestLogin(t *testing.T) {
 
     req.AddCookie(&authCookie)
     if err := a.Login(rw, req, "username", "password", "/redirect"); err != nil {
-        t.Fatalf("Login: Didn't catch existing cookie")
+        t.Fatal("Login: Didn't catch existing cookie")
     }
     req, _ = http.NewRequest("POST", "/", nil)
     if err := a.Login(rw, req, "username", "password", "/redirect"); err != nil {
@@ -115,9 +115,9 @@ func TestAuthorize(t *testing.T) {
     a.Login(rw, req, "username", "password", "/redirect")
 
     req.AddCookie(&authCookie)
-    /*if err := a.Authorize(rw, req, true); err == nil || err.Error() != "no session existed" {
-        t.Fatalf("Authorization: didn't catch new cookie")
-    }*/
+    if err := a.Authorize(rw, req, true); err == nil || err.Error() != "no session existed" {
+        t.Log("Authorization: didn't catch new cookie")
+    }
     req, _ = http.NewRequest("GET", "/", nil)
     if err := a.Login(rw, req, "username", "password", "/redirect"); err != nil {
         t.Fatalf("Authorization login error: %v", err)
@@ -137,16 +137,17 @@ func TestAuthorizeRole(t *testing.T) {
     a.Login(rw, req, "username", "password", "/redirect")
 
     req.AddCookie(&authCookie)
-    /*if err := a.AuthorizeRole(rw, req, 20, true); err == nil || err.Error() != "no session existed" {
-        t.Fatalf("Authorization: didn't catch new cookie")
-    }*/
+    // TODO:
+    //if err := a.AuthorizeRole(rw, req, 20, true); err == nil || err.Error() != "no session existed" {
+    //   t.Log("Authorization: didn't catch new cookie")
+    //}
     req, _ = http.NewRequest("GET", "/", nil)
     if err := a.Login(rw, req, "username", "password", "/redirect"); err != nil {
         t.Fatalf("Authorization login error: %v", err)
     }
     req.AddCookie(&authCookie)
     if err := a.AuthorizeRole(rw, req, "blah", true); err == nil {
-        t.Fatalf("AuthorizeRole error: Didn't fail on invalid role")
+        t.Fatal("AuthorizeRole error: Didn't fail on invalid role")
     }
     if err := a.AuthorizeRole(rw, req, "user", true); err != nil {
         t.Fatalf("AuthorizeRole error: %v", err) // Should work
@@ -163,7 +164,7 @@ func TestLogout(t *testing.T) {
         t.Fatalf("Logout error: %v", err)
     }
     // headers := rw.Header()
-    // Test that the auth cookie's expiration date is set to Thu, 01 Jan 1970 00:00:01
+    // TODO: Test that the auth cookie's expiration date is set to Thu, 01 Jan 1970 00:00:01
 }
 
 func TestDeleteUser(t *testing.T) {
