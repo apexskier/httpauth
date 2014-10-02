@@ -33,7 +33,15 @@ func TestSqlInit(t *testing.T) {
 }
 
 func TestNewSqlAuthBackend(t *testing.T) {
-    sb = NewSqlAuthBackend(driverName, driverInfo)
+    var err error
+    _, err = NewSqlAuthBackend(driverName, driverName + "_test")
+    if err == nil {
+        t.Fatal("Expected error on invalid connection.")
+    }
+    sb, err = NewSqlAuthBackend(driverName, driverInfo)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
     if sb.driverName != driverName {
         t.Fatal("Driver name.")
     }
@@ -55,7 +63,10 @@ func TestSaveUser_sql(t *testing.T) {
 }
 
 func TestNewSqlAuthBackend_existing(t *testing.T) {
-    b2 := NewSqlAuthBackend(driverName, driverInfo)
+    b2, err := NewSqlAuthBackend(driverName, driverInfo)
+    if err != nil {
+        t.Fatal(err.Error())
+    }
 
     user, ok := b2.User("username")
     if !ok {

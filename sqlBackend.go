@@ -15,6 +15,9 @@ type SqlAuthBackend struct {
 // connection and making sure the storage table exists. The table is called
 // goauth.
 //
+// Returns an error if connecting to the database fails, pinging the database
+// fails, or creating the table fails.
+//
 // This uses the databases/sql package to open a connection. Its parameters
 // should match the sql.Open function. See
 // http://golang.org/pkg/database/sql/#Open for more information.
@@ -22,16 +25,23 @@ type SqlAuthBackend struct {
 // Be sure to import "database/sql" and your driver of choice. If you're not
 // using sql for your own purposes, you'll need to use the underscore to import
 // for side effects; see http://golang.org/doc/effective_go.html#blank_import.
-func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend) {
+func NewSqlAuthBackend(driverName, dataSourceName string) (b SqlAuthBackend, e error) {
     b.driverName = driverName
     b.dataSourceName = dataSourceName
     db, err := sql.Open(driverName, dataSourceName)
     if err != nil {
-        panic(err)
+        return b, err
+    }
+    err = db.Ping()
+    if err != nil {
+        return b, err
     }
     b.db = db
-    db.Exec(`create table if not exists goauth (Username varchar(255), Email varchar(255), Hash varchar(255), Role varchar(255), primary key (Username))`)
-    return b
+    _, err = db.Exec(`create table if not exists goauth (Username varchar(255), Email varchar(255), Hash varchar(255), Role varchar(255), primary key (Username))`)
+    if err != nil {
+        return b, err
+    }
+    return b, nil
 }
 
 // User returns the user with the given username.
