@@ -44,7 +44,7 @@ func testSqlBackend(t *testing.T, driver string, info string) {
         t.Fatal("Driver info not saved.")
     }
 
-    TestBackend(t, backend)
+    testBackend(t, backend)
 }
 
 func testSqlReopen(t *testing.T, driver string, info string) {
@@ -62,7 +62,7 @@ func testSqlReopen(t *testing.T, driver string, info string) {
         t.Fatal(err.Error())
     }
 
-    TestAfterReopen(t, backend)
+    testAfterReopen(t, backend)
 }
 
 func sqlTests(t *testing.T, driver string, info string) {

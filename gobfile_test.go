@@ -27,7 +27,7 @@ func TestInitGobFileAuthBackend(t *testing.T) {
         t.Fatal("Users initialized with items.")
     }
 
-    TestBackend(t, b)
+    testBackend(t, b)
 }
 
 func TestGobReopen(t *testing.T) {
@@ -41,5 +41,5 @@ func TestGobReopen(t *testing.T) {
         t.Fatal(err.Error())
     }
 
-    TestBackend2(t, b)
+    testBackend2(t, b)
 }

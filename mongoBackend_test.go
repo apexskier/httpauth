@@ -53,7 +53,7 @@ func TestNewMongodbAuthBackend(t *testing.T) {
         t.Error("DB not saved.")
     }
 
-    TestBackend(t, mongo_backend)
+    testBackend(t, mongo_backend)
 }
 
 func TestMongodbReopen(t *testing.T) {
@@ -67,5 +67,5 @@ func TestMongodbReopen(t *testing.T) {
         t.Fatal(err.Error())
     }
 
-    TestBackend2(t, mongo_backend)
+    testBackend2(t, mongo_backend)
 }
