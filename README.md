@@ -28,13 +28,7 @@ for an example. You can login with the username and password "admin".
 Tests can be run by simulating Travis CI's build environment. There's a very
 unsafe script --- `start-test-env.sh` that will do this for you.
 
-**Note**
-
-This is the first time I've worked with implementing the details of cookie
-storage, authentication or any sort of real security. There are no guarantees
-that this will work as expected, but I'd love feedback. If you have any issues
-or suggestions, please [let me
-know](https://github.com/Wombats/goauth/issues/new).
+You should [follow me on Twitter](https://twitter.com/apexskier).
 
 ### TODO
 
