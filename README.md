@@ -22,6 +22,23 @@ Access can be restricted by a users' role.
 Uses [bcrypt](http://codahale.com/how-to-safely-store-a-password/) for password
 hashing.
 
+```go
+var (
+    aaa httpauth.Authorizer
+)
+
+func login(rw http.ResponseWriter, req *http.Request) {
+    username := req.PostFormValue("username")
+    password := req.PostFormValue("password")
+    if err := aaa.Login(rw, req, username, password, "/"); err != nil && err.Error() == "already authenticated" {
+        http.Redirect(rw, req, "/", http.StatusSeeOther)
+    } else if err != nil {
+        fmt.Println(err)
+        http.Redirect(rw, req, "/login", http.StatusSeeOther)
+    }
+}
+```
+
 Run `go run server.go` from the examples directory and visit `localhost:8009`
 for an example. You can login with the username and password "admin".
 
