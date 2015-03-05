@@ -19,10 +19,11 @@
 package httpauth
 
 import (
-	"code.google.com/p/go.crypto/bcrypt"
 	"errors"
-	"github.com/gorilla/sessions"
 	"net/http"
+
+	"github.com/gorilla/sessions"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ErrDeleteNull is returned by DeleteUser when that user didn't exist at the

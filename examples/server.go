@@ -1,73 +1,72 @@
 package main
 
 import (
-    "net/http"
-    "code.google.com/p/go.crypto/bcrypt"
-    "github.com/apexskier/httpauth"
-    "github.com/gorilla/mux"
-    "html/template"
-    "fmt"
-    "os"
+	"fmt"
+	"html/template"
+	"net/http"
+	"os"
+
+	"github.com/apexskier/httpauth"
+	"github.com/gorilla/mux"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-    backend httpauth.GobFileAuthBackend
-    aaa httpauth.Authorizer
-    roles map[string]httpauth.Role
-    port = 8009
-    backendfile = "auth.gob"
+	backend     httpauth.GobFileAuthBackend
+	aaa         httpauth.Authorizer
+	roles       map[string]httpauth.Role
+	port        = 8009
+	backendfile = "auth.gob"
 )
 
-
 func main() {
-    var err error
-    // create the backend storage, remove when all done
-    os.Create(backendfile)
-    defer os.Remove(backendfile)
+	var err error
+	// create the backend storage, remove when all done
+	os.Create(backendfile)
+	defer os.Remove(backendfile)
 
-    // create the backend
-    backend, err = httpauth.NewGobFileAuthBackend(backendfile)
-    if err != nil {
-        panic(err)
-    }
+	// create the backend
+	backend, err = httpauth.NewGobFileAuthBackend(backendfile)
+	if err != nil {
+		panic(err)
+	}
 
-    // create some default roles
-    roles = make(map[string]httpauth.Role)
-    roles["user"] = 30
-    roles["admin"] = 80
-    aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "user", roles)
+	// create some default roles
+	roles = make(map[string]httpauth.Role)
+	roles["user"] = 30
+	roles["admin"] = 80
+	aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "user", roles)
 
-    // create a default user
-    hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), 8)
-    if err != nil {
-        panic(err)
-    }
-    defaultUser := httpauth.UserData{Username:"admin", Email:"admin@localhost", Hash:hash, Role:"admin"}
-    err = backend.SaveUser(defaultUser)
-    if err != nil {
-        panic(err)
-    }
+	// create a default user
+	hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), 8)
+	if err != nil {
+		panic(err)
+	}
+	defaultUser := httpauth.UserData{Username: "admin", Email: "admin@localhost", Hash: hash, Role: "admin"}
+	err = backend.SaveUser(defaultUser)
+	if err != nil {
+		panic(err)
+	}
 
+	// set up routers and route handlers
+	r := mux.NewRouter()
+	r.HandleFunc("/login", getLogin).Methods("GET")
+	r.HandleFunc("/register", postRegister).Methods("POST")
+	r.HandleFunc("/login", postLogin).Methods("POST")
+	r.HandleFunc("/admin", handleAdmin).Methods("GET")
+	r.HandleFunc("/add_user", postAddUser).Methods("POST")
+	r.HandleFunc("/change", postChange).Methods("POST")
+	r.HandleFunc("/", handlePage).Methods("GET") // authorized page
+	r.HandleFunc("/logout", handleLogout)
 
-    // set up routers and route handlers
-    r := mux.NewRouter()
-    r.HandleFunc("/login", getLogin).Methods("GET")
-    r.HandleFunc("/register", postRegister).Methods("POST")
-    r.HandleFunc("/login", postLogin).Methods("POST")
-    r.HandleFunc("/admin", handleAdmin).Methods("GET")
-    r.HandleFunc("/add_user", postAddUser).Methods("POST")
-    r.HandleFunc("/change", postChange).Methods("POST")
-    r.HandleFunc("/", handlePage).Methods("GET") // authorized page
-    r.HandleFunc("/logout", handleLogout)
-
-    http.Handle("/", r)
-    fmt.Printf("Server running on port %d\n", port)
-    http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	http.Handle("/", r)
+	fmt.Printf("Server running on port %d\n", port)
+	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
 func getLogin(rw http.ResponseWriter, req *http.Request) {
-    messages := aaa.Messages(rw, req)
-    fmt.Fprintf(rw, `
+	messages := aaa.Messages(rw, req)
+	fmt.Fprintf(rw, `
         <html>
         <head><title>Login</title></head>
         <body>
@@ -93,59 +92,59 @@ func getLogin(rw http.ResponseWriter, req *http.Request) {
 }
 
 func postLogin(rw http.ResponseWriter, req *http.Request) {
-    username := req.PostFormValue("username")
-    password := req.PostFormValue("password")
-    if err := aaa.Login(rw, req, username, password, "/"); err != nil && err.Error() == "already authenticated" {
-        http.Redirect(rw, req, "/", http.StatusSeeOther)
-    } else if err != nil {
-        fmt.Println(err)
-        http.Redirect(rw, req, "/login", http.StatusSeeOther)
-    }
+	username := req.PostFormValue("username")
+	password := req.PostFormValue("password")
+	if err := aaa.Login(rw, req, username, password, "/"); err != nil && err.Error() == "already authenticated" {
+		http.Redirect(rw, req, "/", http.StatusSeeOther)
+	} else if err != nil {
+		fmt.Println(err)
+		http.Redirect(rw, req, "/login", http.StatusSeeOther)
+	}
 }
 
 func postRegister(rw http.ResponseWriter, req *http.Request) {
-    var user httpauth.UserData
-    user.Username = req.PostFormValue("username")
-    user.Email = req.PostFormValue("email")
-    password := req.PostFormValue("password")
-    if err := aaa.Register(rw, req, user, password); err == nil {
-        postLogin(rw, req)
-    } else {
-        http.Redirect(rw, req, "/login", http.StatusSeeOther)
-    }
+	var user httpauth.UserData
+	user.Username = req.PostFormValue("username")
+	user.Email = req.PostFormValue("email")
+	password := req.PostFormValue("password")
+	if err := aaa.Register(rw, req, user, password); err == nil {
+		postLogin(rw, req)
+	} else {
+		http.Redirect(rw, req, "/login", http.StatusSeeOther)
+	}
 }
 
 func postAddUser(rw http.ResponseWriter, req *http.Request) {
-    var user httpauth.UserData
-    user.Username = req.PostFormValue("username")
-    user.Email = req.PostFormValue("email")
-    password := req.PostFormValue("password")
-    user.Role = req.PostFormValue("role")
-    if err := aaa.Register(rw, req, user, password); err != nil {
-        // maybe something
-    }
+	var user httpauth.UserData
+	user.Username = req.PostFormValue("username")
+	user.Email = req.PostFormValue("email")
+	password := req.PostFormValue("password")
+	user.Role = req.PostFormValue("role")
+	if err := aaa.Register(rw, req, user, password); err != nil {
+		// maybe something
+	}
 
-    http.Redirect(rw, req, "/admin", http.StatusSeeOther)
+	http.Redirect(rw, req, "/admin", http.StatusSeeOther)
 }
 
 func postChange(rw http.ResponseWriter, req *http.Request) {
-    email := req.PostFormValue("new_email")
-    aaa.Update(rw, req, "", email)
-    http.Redirect(rw, req, "/", http.StatusSeeOther)
+	email := req.PostFormValue("new_email")
+	aaa.Update(rw, req, "", email)
+	http.Redirect(rw, req, "/", http.StatusSeeOther)
 }
 
 func handlePage(rw http.ResponseWriter, req *http.Request) {
-    if err := aaa.Authorize(rw, req, true); err != nil {
-        fmt.Println(err)
-        http.Redirect(rw, req, "/login", http.StatusSeeOther)
-        return
-    }
-    if user, err := aaa.CurrentUser(rw, req); err == nil {
-        type data struct {
-            User httpauth.UserData
-        }
-        d := data{User:user}
-        t, err := template.New("page").Parse(`
+	if err := aaa.Authorize(rw, req, true); err != nil {
+		fmt.Println(err)
+		http.Redirect(rw, req, "/login", http.StatusSeeOther)
+		return
+	}
+	if user, err := aaa.CurrentUser(rw, req); err == nil {
+		type data struct {
+			User httpauth.UserData
+		}
+		d := data{User: user}
+		t, err := template.New("page").Parse(`
             <html>
             <head><title>Secret page</title></head>
             <body>
@@ -162,33 +161,33 @@ func handlePage(rw http.ResponseWriter, req *http.Request) {
                 </form>
             </body>
             `)
-        if err != nil {
-            panic(err)
-        }
-        t.Execute(rw, d)
-    }
+		if err != nil {
+			panic(err)
+		}
+		t.Execute(rw, d)
+	}
 }
 
 func handleAdmin(rw http.ResponseWriter, req *http.Request) {
-    if err := aaa.AuthorizeRole(rw, req, "admin", true); err != nil {
-        fmt.Println(err)
-        http.Redirect(rw, req, "/login", http.StatusSeeOther)
-        return
-    }
-    if user, err := aaa.CurrentUser(rw, req); err == nil {
-        type data struct {
-            User httpauth.UserData
-            Roles map[string]httpauth.Role
-            Users []httpauth.UserData
-            Msg []string
-        }
-        messages := aaa.Messages(rw, req)
-        users, err := backend.Users()
-        if err != nil {
-            panic(err)
-        }
-        d := data{User:user, Roles:roles, Users:users, Msg:messages}
-        t, err := template.New("admin").Parse(`
+	if err := aaa.AuthorizeRole(rw, req, "admin", true); err != nil {
+		fmt.Println(err)
+		http.Redirect(rw, req, "/login", http.StatusSeeOther)
+		return
+	}
+	if user, err := aaa.CurrentUser(rw, req); err == nil {
+		type data struct {
+			User  httpauth.UserData
+			Roles map[string]httpauth.Role
+			Users []httpauth.UserData
+			Msg   []string
+		}
+		messages := aaa.Messages(rw, req)
+		users, err := backend.Users()
+		if err != nil {
+			panic(err)
+		}
+		d := data{User: user, Roles: roles, Users: users, Msg: messages}
+		t, err := template.New("admin").Parse(`
             <html>
             <head><title>Admin page</title></head>
             <body>
@@ -212,19 +211,18 @@ func handleAdmin(rw http.ResponseWriter, req *http.Request) {
                 </form>
             </body>
             `)
-        if err != nil {
-            panic(err)
-        }
-        t.Execute(rw, d)
-    }
+		if err != nil {
+			panic(err)
+		}
+		t.Execute(rw, d)
+	}
 }
 
 func handleLogout(rw http.ResponseWriter, req *http.Request) {
-    if err := aaa.Logout(rw, req); err != nil {
-        fmt.Println(err)
-        // this shouldn't happen
-        return
-    }
-    http.Redirect(rw, req, "/", http.StatusSeeOther)
+	if err := aaa.Logout(rw, req); err != nil {
+		fmt.Println(err)
+		// this shouldn't happen
+		return
+	}
+	http.Redirect(rw, req, "/", http.StatusSeeOther)
 }
-
