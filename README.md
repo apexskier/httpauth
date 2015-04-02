@@ -45,7 +45,7 @@ for an example. You can login with the username and password "admin".
 Tests can be run by simulating Travis CI's build environment. There's a very
 unsafe script --- `start-test-env.sh` that will do this for you.
 
-You should [follow me on Twitter](https://twitter.com/apexskier).
+You should [follow me on Twitter](https://twitter.com/apexskier). Appreciate this package? [Buy me a drink!](https://cash.me/$apexskier)
 
 ### TODO
 
