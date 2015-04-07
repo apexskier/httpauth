@@ -174,7 +174,7 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user Use
 	}
 
 	// Generate and save hash
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), .DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return mkerror("couldn't save password: " + err.Error())
 	}
