@@ -122,7 +122,7 @@ func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p
 		return mkerror("already authenticated")
 	}
 	if user, err := a.backend.User(u); err == nil {
-		verify := bcrypt.CompareHashAndPassword(user.Hash, []byte(u+p))
+		verify := bcrypt.CompareHashAndPassword(user.Hash, []byte(p))
 		if verify != nil {
 			a.addMessage(rw, req, "Invalid username or password.")
 			return mkerror("password doesn't match")
@@ -174,7 +174,7 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user Use
 	}
 
 	// Generate and save hash
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Username+password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return mkerror("couldn't save password: " + err.Error())
 	}
@@ -216,7 +216,7 @@ func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, 
 		return mkerror(err.Error())
 	}
 	if p != "" {
-		hash, err = bcrypt.GenerateFromPassword([]byte(username+p), 8)
+		hash, err = bcrypt.GenerateFromPassword([]byte(p), 8)
 		if err != nil {
 			return mkerror("couldn't save password: " + err.Error())
 		}
