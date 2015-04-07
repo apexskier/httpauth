@@ -2,7 +2,7 @@
 [![Build Status](http://img.shields.io/travis/apexskier/httpauth.svg)](https://travis-ci.org/apexskier/httpauth)
 [![Coverage](https://img.shields.io/coveralls/apexskier/httpauth.svg)](https://coveralls.io/r/apexskier/httpauth)
 [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/apexskier/httpauth)
-![https://img.shields.io/badge/version-2.0.0-lightgrey.svg]
+![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-lightgrey.svg)
 
 NOTE: If upgrading from prior to a66ab9d137543fc0c3e56c6fe5d7d377c93087f6, you will need to regenerate password hashes.
 
