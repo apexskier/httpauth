@@ -39,7 +39,7 @@ var (
 type Role int
 
 // UserData represents a single user. It contains the users username, email,
-// and role as well as a hash of their username and password. When creating
+// and role as well as a hash of their password. When creating
 // users, you should not specify a hash; it will be generated in the Register
 // and Update functions.
 type UserData struct {
