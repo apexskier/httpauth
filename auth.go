@@ -216,7 +216,7 @@ func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, 
 		return mkerror(err.Error())
 	}
 	if p != "" {
-		hash, err = bcrypt.GenerateFromPassword([]byte(p), 8)
+		hash, err = bcrypt.GenerateFromPassword([]byte(p), bcrypt.DefaultCost)
 		if err != nil {
 			return mkerror("couldn't save password: " + err.Error())
 		}
