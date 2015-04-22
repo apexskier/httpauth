@@ -38,7 +38,7 @@ func main() {
 	aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "user", roles)
 
 	// create a default user
-	hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), 8)
+	hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)
 	}
