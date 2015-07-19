@@ -1,21 +1,24 @@
 package httpauth
 
 import (
-	"github.com/syndtr/goleveldb/leveldb"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/syndtr/goleveldb/leveldb"
 	"os"
 )
 
-// ErrMissingLeveldbBackend is returned by NewLeveldbAuthBackend when the file doesn't
-// exist. Be sure to create (or touch) it if using brand new backend or
+// ErrMissingLeveldbBackend is returned by NewLeveldbAuthBackend when the file
+// doesn't exist. Be sure to create (or touch) it if using brand new backend or
 // resetting backend.
 var (
 	ErrMissingLeveldbBackend = errors.New("leveldbauthbackend: missing backend")
 )
 
-// LeveldbAuthBackend stores user data and the location of the gob file.
+// LeveldbAuthBackend stores user data and the location of a leveldb file.
+//
+// Current implementation holds all user data in memory, flushing to leveldb
+// as a single value to the key "httpauth::userdata" on saves.
 type LeveldbAuthBackend struct {
 	filepath string
 	users    map[string]UserData
@@ -32,7 +35,7 @@ func NewLeveldbAuthBackend(filepath string) (b LeveldbAuthBackend, e error) {
 		if err != nil {
 			return b, fmt.Errorf("leveldbauthbackend: %v", err.Error())
 		}
-		data,err := db.Get([]byte("httpauth::userdata"),nil)
+		data, err := db.Get([]byte("httpauth::userdata"), nil)
 		err = json.Unmarshal(data, &b.users)
 		if err != nil {
 			b.users = make(map[string]UserData)
@@ -65,8 +68,8 @@ func (b LeveldbAuthBackend) Users() (us []UserData, e error) {
 	return
 }
 
-// SaveUser adds a new user, replacing one with the same username, and saves a
-// gob file.
+// SaveUser adds a new user, replacing one with the same username, and flushes
+// to the db.
 func (b LeveldbAuthBackend) SaveUser(user UserData) error {
 	b.users[user.Username] = user
 	err := b.save()
@@ -74,16 +77,16 @@ func (b LeveldbAuthBackend) SaveUser(user UserData) error {
 }
 
 func (b LeveldbAuthBackend) save() error {
-	db, err := leveldb.OpenFile(b.filepath,nil)
+	db, err := leveldb.OpenFile(b.filepath, nil)
 	defer db.Close()
 	if err != nil {
 		return errors.New("leveldbauthbackend: failed to edit auth file")
 	}
-	data,err := json.Marshal(b.users)
+	data, err := json.Marshal(b.users)
 	if err != nil {
 		return errors.New(fmt.Sprintf("leveldbauthbackend: save: %v", err))
 	}
-	err = db.Put([]byte("httpauth::userdata"),data,nil)
+	err = db.Put([]byte("httpauth::userdata"), data, nil)
 	if err != nil {
 		return errors.New(fmt.Sprintf("leveldbauthbackend: save: %v", err))
 	}
