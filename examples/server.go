@@ -6,27 +6,26 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/apexskier/httpauth"
+	"github.com/trusch/httpauth"
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	backend     httpauth.GobFileAuthBackend
+	backend     httpauth.LeveldbAuthBackend
 	aaa         httpauth.Authorizer
 	roles       map[string]httpauth.Role
 	port        = 8009
-	backendfile = "auth.gob"
+	backendfile = "auth.leveldb"
 )
 
 func main() {
 	var err error
-	// create the backend storage, remove when all done
-	os.Create(backendfile)
+	os.Mkdir(backendfile,0755)
 	defer os.Remove(backendfile)
 
 	// create the backend
-	backend, err = httpauth.NewGobFileAuthBackend(backendfile)
+	backend, err = httpauth.NewLeveldbAuthBackend(backendfile)
 	if err != nil {
 		panic(err)
 	}

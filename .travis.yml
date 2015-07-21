@@ -14,6 +14,7 @@ install:
     - go get gopkg.in/mgo.v2
     - go get github.com/lib/pq
     - go get github.com/mattn/go-sqlite3
+    - go get github.com/syndtr/goleveldb/leveldb
 
 before_script:
     - mysql -e 'create database httpauth_test;'
@@ -22,7 +23,6 @@ before_script:
 services:
     - mongodb
 
-
 before_install:
     - go get github.com/axw/gocov/gocov
     - go get github.com/mattn/goveralls
@@ -30,3 +30,5 @@ before_install:
 
 script:
     - $HOME/gopath/bin/goveralls -repotoken HQ2GKw3BZ02GdvxTWqMKVZ68iKBdE5OLR
+
+sudo: false
