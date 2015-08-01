@@ -40,8 +40,6 @@ func NewLeveldbAuthBackend(filepath string) (b LeveldbAuthBackend, e error) {
 		if err != nil {
 			b.users = make(map[string]UserData)
 		}
-	} else if !os.IsNotExist(err) {
-		return b, fmt.Errorf("leveldbauthbackend: %v", err.Error())
 	} else {
 		return b, ErrMissingLeveldbBackend
 	}

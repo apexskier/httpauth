@@ -10,17 +10,15 @@ var (
 )
 
 func TestInitLeveldbAuthBackend(t *testing.T) {
+	// test if ErrMissingLeveldbBackend is thrown if no leveldb database exists
 	os.Remove(fileldb)
-	os.Create(fileldb)
 	b, err := NewLeveldbAuthBackend(fileldb)
-	if err != ErrMissingBackend {
+	if err != ErrMissingLeveldbBackend {
 		t.Fatal(err.Error())
 	}
 
-	_, err = os.Create(fileldb)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	os.Mkdir(fileldb, 0700)
+	defer os.Remove(fileldb)
 	b, err = NewLeveldbAuthBackend(fileldb)
 	if err != nil {
 		t.Fatal(err.Error())
