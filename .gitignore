@@ -7,3 +7,4 @@ auth.gob
 server
 mongodbtest
 pgdbtest
+test.ldb
