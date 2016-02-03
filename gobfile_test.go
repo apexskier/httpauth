@@ -1,7 +1,6 @@
 package httpauth
 
 import (
-	"fmt"
 	"os"
 	"testing"
 )
@@ -11,7 +10,6 @@ var gobfile = "gobfile_test.gob"
 
 func TestInitGobFileAuthBackend(t *testing.T) {
 	err := os.Remove(gobfile)
-	fmt.Println(gobfile)
 	b, err := NewGobFileAuthBackend(gobfile)
 	if err != ErrMissingBackend {
 		t.Fatal(err.Error())
