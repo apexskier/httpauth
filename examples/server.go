@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/trusch/httpauth"
 	"github.com/gorilla/mux"
+	"github.com/turnkey-commerce/httpauth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,7 +21,7 @@ var (
 
 func main() {
 	var err error
-	os.Mkdir(backendfile,0755)
+	os.Mkdir(backendfile, 0755)
 	defer os.Remove(backendfile)
 
 	// create the backend
@@ -128,7 +128,7 @@ func postAddUser(rw http.ResponseWriter, req *http.Request) {
 
 func postChange(rw http.ResponseWriter, req *http.Request) {
 	email := req.PostFormValue("new_email")
-	aaa.Update(rw, req, "", email)
+	aaa.Update(rw, req, "", "", email)
 	http.Redirect(rw, req, "/", http.StatusSeeOther)
 }
 
