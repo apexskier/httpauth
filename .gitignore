@@ -8,3 +8,5 @@ server
 mongodbtest
 pgdbtest
 test.ldb
+gobfile_test.gob
+httpauth_test_sqlite.db

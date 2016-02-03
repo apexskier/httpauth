@@ -1,26 +1,31 @@
 package httpauth
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
 
+// Establish new gobfile for testing due to issues with busy process from previous test.
+var gobfile = "gobfile_test.gob"
+
 func TestInitGobFileAuthBackend(t *testing.T) {
-	os.Remove(file)
-	b, err := NewGobFileAuthBackend(file)
+	err := os.Remove(gobfile)
+	fmt.Println(gobfile)
+	b, err := NewGobFileAuthBackend(gobfile)
 	if err != ErrMissingBackend {
 		t.Fatal(err.Error())
 	}
 
-	_, err = os.Create(file)
+	_, err = os.Create(gobfile)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	b, err = NewGobFileAuthBackend(file)
+	b, err = NewGobFileAuthBackend(gobfile)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if b.filepath != file {
+	if b.filepath != gobfile {
 		t.Fatal("File path not saved.")
 	}
 	if len(b.users) != 0 {
@@ -31,12 +36,12 @@ func TestInitGobFileAuthBackend(t *testing.T) {
 }
 
 func TestGobReopen(t *testing.T) {
-	b, err := NewGobFileAuthBackend(file)
+	b, err := NewGobFileAuthBackend(gobfile)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	b.Close()
-	b, err = NewGobFileAuthBackend(file)
+	b, err = NewGobFileAuthBackend(gobfile)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

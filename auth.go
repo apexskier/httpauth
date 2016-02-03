@@ -197,16 +197,34 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user Use
 	return nil
 }
 
-// Update changes data for an existing user. Needs thought...
-func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, p string, e string) error {
+// Update changes data for an existing user.
+// The behavior of the update varies depending on how the arguments are passed:
+//  If an empty username u is passed then it updates the current user from the session
+//    (self-edit scenario)
+//  If the username u is passed explicitly then it updates the passed username
+//    (admin update scenario)
+//  If an empty password p is passed then it keeps the original rather than
+//    regenerating the hash, if a new password is passed then it regenerates the hash.
+//  If an empty email e is passed then it keeps the orginal rather than updating it,
+//    if a new email is passedn then it updates it.
+func (a Authorizer) Update(rw http.ResponseWriter, req *http.Request, u string, p string, e string) error {
 	var (
-		hash  []byte
-		email string
+		hash     []byte
+		email    string
+		username string
+		ok       bool
 	)
-	authSession, err := a.cookiejar.Get(req, "auth")
-	username, ok := authSession.Values["username"].(string)
-	if !ok {
-		return mkerror("not logged in")
+	if u != "" {
+		username = u
+	} else {
+		authSession, err := a.cookiejar.Get(req, "auth")
+		if err != nil {
+			return mkerror("couldn't get session needed to update user: " + err.Error())
+		}
+		username, ok = authSession.Values["username"].(string)
+		if !ok {
+			return mkerror("not logged in")
+		}
 	}
 	user, err := a.backend.User(username)
 	if err == ErrMissingUser {
