@@ -11,14 +11,19 @@ var (
 
 func TestInitLeveldbAuthBackend(t *testing.T) {
 	// test if ErrMissingLeveldbBackend is thrown if no leveldb database exists
-	os.Remove(fileldb)
+	err := os.RemoveAll(fileldb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	b, err := NewLeveldbAuthBackend(fileldb)
 	if err != ErrMissingLeveldbBackend {
 		t.Fatal(err.Error())
 	}
 
-	os.Mkdir(fileldb, 0700)
-	defer os.Remove(fileldb)
+	err = os.MkdirAll(fileldb, 0700)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	b, err = NewLeveldbAuthBackend(fileldb)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -34,6 +39,7 @@ func TestInitLeveldbAuthBackend(t *testing.T) {
 }
 
 func TestLeveldbReopen(t *testing.T) {
+	defer os.RemoveAll(fileldb)
 	b, err := NewLeveldbAuthBackend(fileldb)
 	if err != nil {
 		t.Fatal(err.Error())

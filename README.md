@@ -5,7 +5,7 @@
 ![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-lightgrey.svg)
 
 NOTE: If upgrading from prior to
-[a66ab9d](https://github.com/apexskier/httpauth/commit/a66ab9d137543fc0c3e56c6fe5d7d377c93087f6), 
+[a66ab9d](https://github.com/apexskier/httpauth/commit/a66ab9d137543fc0c3e56c6fe5d7d377c93087f6),
 you will need to regenerate password hashes.
 
 This package uses the [Gorilla web toolkit](http://www.gorillatoolkit.org/)'s
@@ -45,7 +45,7 @@ func login(rw http.ResponseWriter, req *http.Request) {
 ```
 
 Run `go run server.go` from the examples directory and visit `localhost:8009`
-for an example. You can login with the username and password "admin".
+for an example. You can login with the username "admin" and password "adminadmin".
 
 Tests can be run by simulating Travis CI's build environment. There's a very
 unsafe script --- `start-test-env.sh` that will do this for you.

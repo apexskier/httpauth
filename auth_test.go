@@ -79,6 +79,28 @@ func TestRegister(t *testing.T) {
 	}
 }
 
+func TestUpdate(t *testing.T) {
+	rw := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", nil)
+	updatedEmail := "email2@example.com"
+	err := a.Update(rw, req, "username", "", updatedEmail)
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if rw.Code != http.StatusOK {
+		t.Fatalf("Update: Wrong status code: %v", rw.Code)
+	}
+
+	user, err := a.backend.User("username")
+	if err != nil {
+		t.Fatalf("Couldn't get updated user: %v", err)
+	}
+
+	if user.Email != updatedEmail {
+		t.Errorf("Updated user's email is %s, expected %s", user.Email, updatedEmail)
+	}
+}
+
 func TestLogin(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/", nil)
@@ -154,7 +176,7 @@ func TestAuthorizeRole(t *testing.T) {
 		t.Fatalf("AuthorizeRole error: %v", err) // Should work
 	}
 	if err := a.AuthorizeRole(rw, req, "admin", true); err == nil {
-		t.Fatalf("AuthorizeRole error: didn't restrict lower role user", err) // Should work
+		t.Fatal("AuthorizeRole error: didn't restrict lower role user", err) // Should work
 	}
 }
 
