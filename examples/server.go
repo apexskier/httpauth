@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/apexskier/httpauth"
 	"github.com/gorilla/mux"
-	"github.com/turnkey-commerce/httpauth"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -37,12 +36,14 @@ func main() {
 	aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "user", roles)
 
 	// create a default user
-	hash, err := bcrypt.GenerateFromPassword([]byte("adminadmin"), bcrypt.DefaultCost)
+	username := "admin"
+	defaultUser := httpauth.UserData{Username: username, Role: "admin"}
+	err = backend.SaveUser(defaultUser)
 	if err != nil {
 		panic(err)
 	}
-	defaultUser := httpauth.UserData{Username: "admin", Email: "admin@localhost", Hash: hash, Role: "admin"}
-	err = backend.SaveUser(defaultUser)
+	// Update user with a password and email address
+	err = aaa.Update(nil, nil, username, "adminadmin", "admin@localhost.com")
 	if err != nil {
 		panic(err)
 	}
