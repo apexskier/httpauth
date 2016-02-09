@@ -4,9 +4,7 @@
 [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/apexskier/httpauth)
 ![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-lightgrey.svg)
 
-NOTE: If upgrading from prior to
-[a66ab9d](https://github.com/apexskier/httpauth/commit/a66ab9d137543fc0c3e56c6fe5d7d377c93087f6),
-you will need to regenerate password hashes.
+See git tags/releases for information about potentially breaking change.
 
 This package uses the [Gorilla web toolkit](http://www.gorillatoolkit.org/)'s
 sessions package to implement a user authentication and authorization system
