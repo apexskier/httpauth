@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"os"
 
 	"github.com/apexskier/httpauth"
@@ -94,7 +95,7 @@ func getLogin(rw http.ResponseWriter, req *http.Request) {
 func postLogin(rw http.ResponseWriter, req *http.Request) {
 	username := req.PostFormValue("username")
 	password := req.PostFormValue("password")
-	if err := aaa.Login(rw, req, username, password, "/"); err != nil && err.Error() == "already authenticated" {
+	if err := aaa.Login(rw, req, username, password, "/"); err != nil || strings.Contains(err.Error(), "already authenticated") {
 		http.Redirect(rw, req, "/", http.StatusSeeOther)
 	} else if err != nil {
 		fmt.Println(err)
