@@ -118,7 +118,7 @@ func NewAuthorizer(backend AuthBackend, key []byte, defaultRole string, roles ma
 // message will be added to the session on failure with the reason.
 func (a Authorizer) Login(rw http.ResponseWriter, req *http.Request, u string, p string, dest string) error {
 	session, _ := a.cookiejar.Get(req, "auth")
-	if session.Values["username"] != nil {
+	if session.Values["username"] == u {
 		return mkerror("already authenticated")
 	}
 	if user, err := a.backend.User(u); err == nil {
