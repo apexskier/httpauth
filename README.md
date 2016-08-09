@@ -1,6 +1,6 @@
 # Go Session Authentication
 [![Build Status](http://img.shields.io/travis/apexskier/httpauth.svg)](https://travis-ci.org/apexskier/httpauth)
-[![Coverage](https://img.shields.io/coveralls/apexskier/httpauth.svg)](https://coveralls.io/r/apexskier/httpauth)
+[![Coverage Status](https://coveralls.io/repos/github/apexskier/httpauth/badge.svg?branch=master)](https://coveralls.io/github/apexskier/httpauth?branch=master)
 [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/apexskier/httpauth)
 ![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-lightgrey.svg)
 
