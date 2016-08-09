@@ -30,7 +30,7 @@ import (
 // time of call.
 // ErrMissingUser is returned by Users when a user is not found.
 var (
-	ErrDeleteNull  = mkerror("deleting non-existant user")
+	ErrDeleteNull  = mkerror("deleting nonexistent user")
 	ErrMissingUser = mkerror("can't find user")
 )
 
@@ -185,7 +185,7 @@ func (a Authorizer) Register(rw http.ResponseWriter, req *http.Request, user Use
 		user.Role = a.defaultRole
 	} else {
 		if _, ok := a.roles[user.Role]; !ok {
-			return mkerror("non-existant role")
+			return mkerror("nonexistent role")
 		}
 	}
 
