@@ -14,10 +14,11 @@ var (
 	file       = "auth_test.gob"
 	c          http.Client
 	authCookie http.Cookie
+	roles      map[string]Role
 )
 
 func init() {
-	roles := make(map[string]Role)
+	roles = make(map[string]Role)
 	roles["user"] = 40
 	roles["admin"] = 80
 	t, _ := time.Parse("Mon, 02 Jan 2006 15:04:05 MST", "Mon, 07 Apr 2014 21:47:54 UTC")
@@ -41,12 +42,20 @@ func TestNewAuthorizer(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	roles := make(map[string]Role)
-	roles["user"] = 40
-	roles["admin"] = 80
 	a, err = NewAuthorizer(b, []byte("testkey"), "user", roles)
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+
+	if !a.cookiejar.Options.Secure {
+		t.Error("Cookie should be secure by default.")
+	}
+}
+
+func TestAllowInsecureCookie(t *testing.T) {
+	a.AllowInsecureCookie()
+	if a.cookiejar.Options.Secure {
+		t.Error("Cookie should be set to insecure.")
 	}
 }
 

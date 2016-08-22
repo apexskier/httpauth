@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strings"
 	"os"
+	"strings"
 
 	"github.com/apexskier/httpauth"
 	"github.com/gorilla/mux"
@@ -35,6 +35,8 @@ func main() {
 	roles["user"] = 30
 	roles["admin"] = 80
 	aaa, err = httpauth.NewAuthorizer(backend, []byte("cookie-encryption-key"), "user", roles)
+	// Don't use this function for production! Only used for testing when https is not available.
+	aaa.AllowInsecureCookie()
 
 	// create a default user
 	username := "admin"

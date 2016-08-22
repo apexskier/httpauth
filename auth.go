@@ -101,9 +101,13 @@ func mkerror(msg string) error {
 //     roles["user"] = 2
 //     roles["admin"] = 4
 //     roles["moderator"] = 3
+//
+// Secure cookie is set to true by default. Use the "AllowInsecureCookie" method to unset
+// it for test environments without https.
 func NewAuthorizer(backend AuthBackend, key []byte, defaultRole string, roles map[string]Role) (Authorizer, error) {
 	var a Authorizer
 	a.cookiejar = sessions.NewCookieStore([]byte(key))
+	a.cookiejar.Options.Secure = true
 	a.backend = backend
 	a.roles = roles
 	a.defaultRole = defaultRole
@@ -111,6 +115,13 @@ func NewAuthorizer(backend AuthBackend, key []byte, defaultRole string, roles ma
 		return a, mkerror("httpauth: defaultRole missing")
 	}
 	return a, nil
+}
+
+// AllowInsecureCookie sets the requirement for Secure cookies to false.
+// This setting is intended for use in test environments where https is
+// not available and shouldn't be used for production use.
+func (a Authorizer) AllowInsecureCookie() {
+	a.cookiejar.Options.Secure = false
 }
 
 // Login logs a user in. They will be redirected to dest or to the last
@@ -269,13 +280,7 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
 		}
 		return mkerror("new authorization session")
 	}
-	/*if authSession.IsNew {
-	    if redirectWithMessage {
-	        a.goBack(rw, req)
-	        a.addMessage(rw, req, "Log in to do that.")
-	    }
-	    return mkerror("no session existed")
-	}*/
+
 	username := authSession.Values["username"]
 	if !authSession.IsNew && username != nil {
 		_, err := a.backend.User(username.(string))
@@ -292,6 +297,14 @@ func (a Authorizer) Authorize(rw http.ResponseWriter, req *http.Request, redirec
 		}
 	}
 	if username == nil {
+		// Check if the problem might be secure cookies required but over http.
+		if authSession.Options.Secure && req.TLS == nil {
+			if redirectWithMessage {
+				a.goBack(rw, req)
+				a.addMessage(rw, req, "Requires https connection to login.")
+			}
+			return mkerror("secure cookie requires https connection")
+		}
 		if redirectWithMessage {
 			a.goBack(rw, req)
 			a.addMessage(rw, req, "Log in to do that.")
